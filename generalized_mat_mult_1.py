@@ -126,10 +126,21 @@ def matMult(A,B,exposed):
     
     # for each set of boundary conditions in Usol:
     for bci in np.ndenumerate(Usol):
-        bci = list(list(bci)[0])[0:2] #extract tuple of indices for bc
-        bc = [extractDim[bci[i]] for i in range(len(bci))]
+        bci = list(list(bci)[0])[0:2] #extract tuple of bc indices
+        # bc = the bci[0] through bci[n] values of exposed
+        bcallv = []
+        for v in exposed:
+            if (v in avars):
+                bcallv.append(A.extractDim(v))
+            elif (v in bvars):
+                bcallv.append(B.extractDim(v))
+        assert (len(bci) == len(bcallv))
+        # from the possible values of each dimension bcallv[i],
+        # extract the bci[i]th value (the index of the boundary condition value)
+        bc = [bcallv[i][bci[i]] for i in range(len(bci))]
+        
         # print (str(bc))
-    #    for tup in itertools.product(??? in indexers):
+    #    for tup in indexers:
     #        if (steadyStateTest(matA[bc][tup]) and steadyStateTest(matB[bc][tup])):
     #            
     #    tensor[right indices] = set(tensor[right indices])
