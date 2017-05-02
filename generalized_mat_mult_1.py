@@ -7,7 +7,7 @@ import numpy as np
 
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
-        assert (len(list(mat.shape)) == len(dims)) # the dims can actually match
+        # assert (len(list(mat.shape)) == len(dims)) # the dims can actually match
         assert (len(dims) == len(resos)) # same number of variables
         self.tensor = mat # numpy matrix
         self.dims = dims # dimension names in order
@@ -22,20 +22,13 @@ class labeledTensor(object):
     def getResos(self):
         return self.resolutions
 
-    def extractDim(self,dim): # extract possible values of a dimension
+    def extractDim(self,a,b,dim): # extract possible values of a dimension
         assert(dim in self.dims)
-        nestednum = self.dims.index(dim)
-        vals = []
-        # go only as deep as nestednum states
-        # basically if nestednum = 0 we want self.tensor[i][0]...[0]
-        # where there are as many [v]'s are there are dimensions
-        # = len(dims)
-        # also i ranges from 0 to the number of possible values
-        assert (len(vals) == self.resolutions[nestednum]) # number of values is same as resolution
+        n = self.getReso(dim)
+        vals = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
         return vals
 
     def getReso(self,dim): # get resolution of dimension
-        assert (len(extractDim(dim)) == self.resolutions[self.dims.index(dim)])
         return self.resolutions[self.dims.index(dim)]
 
 # n possible solution values y for each variable
@@ -75,8 +68,10 @@ def removeDupsOrder(vars):
     return [x for x in vars if not (x in seen or seen_add(x))]
 
 # Test for the steady state. Varies for the PDE
-def steadyStateTest(vars): 
-    pass
+# Comment out irrelevant assert statements
+def steadyStateTest(orderedvars):
+    assert(len(orderedvars) == 3)
+    return (abs((orderedvars[0] + orderedvars[2])/2 - orderedvars[1]) < .0001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -98,7 +93,7 @@ def matMult(A,B,exposed):
 ##    print ("avars " + str(avars))
 ##    print ("bvars " + str(bvars))
 ##    print ("exposed vars " + str(exposed))
-##    print ("indexers " + str(indexers))
+    print ("indexers " + str(indexers))
 ##    print ("All variables " + str(allvar))
 ##    print ("All resolutions " + str(allresos)) # also in order      
 
@@ -122,31 +117,85 @@ def matMult(A,B,exposed):
     rawshape.append(1)
     shape = tuple(rawshape)
     # print ("Shape of solution array: " + str(shape))
-    Usol = np.zeros(shape)
+    Usol = np.empty(shape)
+    Usol = Usol.tolist()
+    # print (str(Usol))
     
     # for each set of boundary conditions in Usol:
     for bci in np.ndenumerate(Usol):
         bci = list(list(bci)[0])[0:2] #extract tuple of bc indices
         # bc = the bci[0] through bci[n] values of exposed
+
         bcallv = []
         for v in exposed:
             if (v in avars):
-                bcallv.append(A.extractDim(v))
+                bcallv.append(A.extractDim(0,5,v))
             elif (v in bvars):
-                bcallv.append(B.extractDim(v))
+                bcallv.append(B.extractDim(0,5,v))
         assert (len(bci) == len(bcallv))
+        
         # from the possible values of each dimension bcallv[i],
         # extract the bci[i]th value (the index of the boundary condition value)
         bc = [bcallv[i][bci[i]] for i in range(len(bci))]
-        
-        # print (str(bc))
-    #    for tup in indexers:
-    #        if (steadyStateTest(matA[bc][tup]) and steadyStateTest(matB[bc][tup])):
-    #            
-    #    tensor[right indices] = set(tensor[right indices])
+        # print ("Boundary conditions: " + str(bc))
 
-    #return labeledTensor(Usol, exposed, exresos)
-    return "foo"
+        indvals = []
+        for ind in indexers:
+            indvals.append(A.extractDim(0,5,ind))
+
+        good = False
+    #   for tup in indexers:
+        for itup in itertools.product(*indvals):
+            # print ("Tuple of indexer values: " + str(itup))
+            itup = list(itup)
+
+            # want - the program goes through each variable in A and B
+            # and replaces it with the correct value from either
+            # bc or itup
+            valsA = []; valsB = []
+            for va in avars:
+                if (va in exposed):
+                    valsA.append(bc[exposed.index(va)])
+                elif (va in indexers):
+                    valsA.append(itup[indexers.index(va)])
+
+            for vb in bvars:
+                if (vb in exposed):
+                    valsB.append(bc[exposed.index(vb)])
+                elif (vb in indexers):
+                    valsB.append(itup[indexers.index(vb)])
+
+##            print ("Values for A: " + str(valsA))
+##            print ("Values for B: " + str(valsB))
+            
+            # if (steadyStateTest passes for both matA and matB):
+            if (steadyStateTest(valsA) and steadyStateTest(valsB)):
+                good = True
+                allvalues = [] # the solution values
+                for v in allvar:
+                    if (v in avars):
+                        allvalues.append(valsA[avars.index(v)])
+                    elif (v in bvars):
+                        allvalues.append(valsB[bvars.index(v)])
+
+                UpSol = Usol #UPrime Solution
+                for bcv in bci:
+                    UpSol = UpSol[bcv]
+
+                if (type(UpSol[0]) == float):
+                    UpSol[0] = tuple(allvalues)
+                else: UpSol.append(tuple(allvalues)) # append the solution
+                # print ("Upsol: " + str(UpSol))
+
+        if (not(good)):
+            UpSol = Usol
+            for bcv in bci:
+                UpSol = UpSol[bcv]
+
+            UpSol[0] = []
+                
+    Usol = np.array(Usol)
+    return labeledTensor(Usol, exposed, exresos)
 
 def main():
     # basic testing - initialize a labeledTensor
@@ -173,5 +222,6 @@ def main():
     U2 = labeledTensor(rU2, ['j','k','l'], [7,7,7])
 
     foo = matMult(U1,U2,['i','l'])
+    print (str(foo.getTensor()))
 
 main()
