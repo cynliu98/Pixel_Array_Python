@@ -35,18 +35,24 @@ class solutionTuple(object):
         return self.sol
 
     def add(self, tup2): # rightwards add
-        for e in tup2.getSol():
-            self.sol.append(e)
+        j = 0
+        if self.sol[0][0] is None:
+            self.sol = [tup2.getSol()[0]]
+            j = 1
 
+        for i in range(j, len(tup2.getSol())):
+            self.sol.append(tup2.getSol()[i])
+        
     def mult(self, tup2): # rightwards multiply
-        newself = []
-        bothlists = [self.sol, tup2.getSol()]
-        for e in itertools.product(*bothlists):
-            e = list(e)
-            e = [item for sublist in e for item in sublist]
-            newself.append(e)
+        if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
+            newself = []
+            bothlists = [self.sol, tup2.getSol()]
+            for e in itertools.product(*bothlists):
+                e = list(e)
+                e = [item for sublist in e for item in sublist]
+                newself.append(e)
 
-        self.sol = newself
+            self.sol = newself
 
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
@@ -165,13 +171,6 @@ def matMultBad(A,B,exposed):
     Usol = Usol.tolist()
     # print (str(Usol))
 
-    # THIS IS THE CORRECTED PSUEDOCODE
-    # for each set of boundary conditions taking from A and B:
-    # start a new solutionTuple a
-    # for each possible set of indexer values
-    #    A[indexer values].mult(B)[indexer values]
-    #    a.add(A[indexer values])
-
     # THIS PART IS WRONG    
     # for each set of boundary conditions in Usol:
 ##    for bci in np.ndenumerate(Usol):
@@ -248,17 +247,91 @@ def matMultBad(A,B,exposed):
     Usol = np.array(Usol)
     return labeledTensor(Usol, exposed, exresos)
 
-def matMult(A, B, exposed)
+def matMult(A, B, exposed):
+    # Preparation
+    matA = A.tensor; matB = B.tensor # what we're actually multiplying
+    avars = A.dims; bvars = B.dims;
+    aresos = A.resolutions; bresos = B.resolutions
+    allvar = removeDupsOrder(avars + bvars) # in order, removed duplicates
+    indexers = [i for i in allvar if not (i in exposed)]
+    
+    allresos = []
+    for v in allvar:
+        if v in avars:
+            allresos.append(aresos[avars.index(v)])
+        elif v in bvars:
+            allresos.append(bresos[bvars.index(v)])
+
+    exposedi = [allvar.index(e) for e in exposed]
+    indexi = [allvar.index(i) for i in indexers]
+    exresos = [allresos[e] for e in exposedi]
+    inresos = [allresos[i] for i in indexi]
+
+    # multipliable lists with indexers' resolutions
+    cartinds = []
+    for ir in inresos:
+        cartinds.append([i for i in range(ir)])
+
+    rawshape = []
+    for r in exresos:
+        rawshape.append(r)
+
+    shape = tuple(rawshape)
+    Usol = np.empty(shape)
+    Usol = Usol.tolist()
+
+    # THIS IS THE CORRECTED
+    # for each set of possible boundary conditions taking from A and B:
+    for bci in np.ndenumerate(Usol):
+        bc = list(list(bci)[0]) #extract tuple of bc indices
+        # these indices are the indices of Usol we care about for now
+
+        # start a new solutionTuple a
+        el = solutionTuple()
+
+        # for each possible set of indexer values
+        for inds in itertools.product(*cartinds): # indexers!
+            # extract the right values to multiply
+            subela = matA; subelb = matB
+            for v in avars:
+                if v in exposed:
+                    # the second exposed variable corresponds to the
+                    # second index in the boundary conditions, etc.
+                    i = exposed.index(v) # take advantage of ordering
+                    subela = subela[bc[i]]
+                elif v in indexers:
+                    i = indexers.index(v)
+                    subela = subela[inds[i]]
+
+            for v in bvars:
+                if v in exposed:
+                    j = exposed.index(v)
+                    subelb = subelb[bc[j]]
+                elif v in indexers:
+                    j = indexers.index(v)
+                    subelb = subelb[inds[j]]
+
+            # print (str(subela))
+            # print (str(subelb))
+
+            # both subela and subelb should be solution tuples
+            # A[indexer values].mult(B)[indexer values]
+            # a.add(A[indexer values])
+            subela.mult(subelb) # changes subela
+            if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
+                el.add(subela)
+
+        UpSol = Usol
+        for n in range(len(bc)-1):
+            UpSol = UpSol[bc[n]]
+
+        UpSol[bc[len(bc)-1]] = el # by parameter passing, USol gets it
+
+    Usol = np.array(Usol)
+    return labeledTensor(Usol, exposed, exresos)
+    
 
 def main():
-##    # basic testing - initialize a labeledTensor
-##    blargh = np.array([[[1,2,3]]])
-##    dimsblargh = ['fake', 'more fake', 'cnn']
-##    resosgood = [4,4,4]
-##    #resosbad = [100]
-##    test = labeledTensor(blargh,dimsblargh,resosgood)
-##    #testbad = labeledTensor(blargh,dimsblargh,resosbad)
-##
     # Actual testing time
     rU1, dim1 = makeU(0,5,7)
     rU2, dim2 = makeU(0,5,7) # symmetric
@@ -267,6 +340,8 @@ def main():
     # print (rU1)
 
     a = solutionTuple([1,2,3,4,5])
+    z = solutionTuple()
+    print ("Nothing: " + str(z))
     print (str(a))
     b = solutionTuple(2)
  #   a.add(b)
@@ -276,7 +351,9 @@ def main():
     U1 = labeledTensor(rU1, ['i','j','k'], [7,7,7])
     U2 = labeledTensor(rU2, ['j','k','l'], [7,7,7])
 
-    foo = matMultBad(U1,U2,['i','k','l'])
+    foo = matMult(U1,U2,['i','k','l'])
+    for e in foo.getTensor().flatten():
+        print (str(e))
     # print (str(foo.getTensor()))
 
 main()
