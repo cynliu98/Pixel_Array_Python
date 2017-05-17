@@ -51,8 +51,9 @@ class solutionTuple(object):
                 e = list(e)
                 e = [item for sublist in e for item in sublist]
                 newself.append(e)
-
-            self.sol = newself
+            # print (newself)
+            return solutionTuple(newself[0]) # don't want to modify the tensor
+        return solutionTuple()
 
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
@@ -317,9 +318,9 @@ def matMult(A, B, exposed):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            subela.mult(subelb) # changes subela
+            prod = subela.mult(subelb) # changes subela
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
-                el.add(subela)
+                el.add(prod)
 
         UpSol = Usol
         for n in range(len(bc)-1):
@@ -344,9 +345,10 @@ def main():
     print ("Nothing: " + str(z))
     print (str(a))
     b = solutionTuple(2)
- #   a.add(b)
-    a.mult(b)
+    a.add(b)
+    # a.mult(b)
     print (str(a))
+    print (str(a.mult(b)))
 
     U1 = labeledTensor(rU1, ['i','j','k'], [7,7,7])
     U2 = labeledTensor(rU2, ['j','k','l'], [7,7,7])
