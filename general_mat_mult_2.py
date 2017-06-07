@@ -5,6 +5,7 @@
 import itertools
 import numpy as np
 import random as rd
+import time
 
 # looks like a set of tuples
 # adds like a list
@@ -220,16 +221,16 @@ def main():
     rU1 = np.array(rU1)
     rU2 = np.array(rU2)
     # print (rU1)
-
-    a = solutionTuple([1,2,3,4,5])
-    z = solutionTuple()
-    print ("Nothing: " + str(z))
-    print (str(a))
-    b = solutionTuple(2)
-    a.add(b)
-    # a.mult(b)
-    print (str(a))
-    print (str(a.mult(b)))
+    
+##    a = solutionTuple([1,2,3,4,5])
+##    z = solutionTuple()
+##    print ("Nothing: " + str(z))
+##    print (str(a))
+##    b = solutionTuple(2)
+##    a.add(b)
+##    # a.mult(b)
+##    print (str(a))
+##    print (str(a.mult(b)))
 
     U1 = labeledTensor(rU1, ['i','j','k'], [40,40,40])
     U2 = labeledTensor(rU2, ['j','k','l'], [40,40,40])
@@ -239,22 +240,30 @@ def main():
     U6 = labeledTensor(rU1, ['n','o','p'], [40,40,40])
     U7 = labeledTensor(rU1, ['o','p','q'], [40,40,40])
 
+##    U12 = matMult(U1,U2,['i','k','l'])
+##    print ("mult 1 done")
+##    U34 = matMult(U3,U4,['k','l','m','n'])
+##    print ("mult 2 done")
+##    Ulefts = matMult(U12,U34,['i','m','n'])
+##    print ("mult 5 done")
+##    U56 = matMult(U5,U6,['m','n','o','p'])
+##    print ("mult 3 done")
+##    U567 = matMult(U56,U7,['m','n','q'])
+##    print ("mult 4 done")
+##    USol = matMult(Ulefts,U567,['i','q'])
+##    print ("done")
+
     U12 = matMult(U1,U2,['i','k','l'])
     print ("mult 1 done")
-    U34 = matMult(U3,U4,['k','l','m','n'])
+    U123 = matMult(U12,U3,['i','l','m'])
     print ("mult 2 done")
-    Ulefts = matMult(U12,U34,['i','m','n'])
-    print ("mult 5 done")
-    U56 = matMult(U5,U6,['m','n','o','p'])
+    U14 = matMult(U123,U4,['i','m','n'])
     print ("mult 3 done")
-    U567 = matMult(U56,U7,['m','n','q'])
+    U15 = matMult(U14,U5,['i','n','o'])
     print ("mult 4 done")
-    USol = matMult(Ulefts,U567,['i','q'])
-    print ("done")
-
-##    U12 = matMult(U1,U2,['i','k','l'])
-##    U123 = matMult(U12,U3,['i','l','m'])
-##    USol = matMult(U123,U4,['i','n'])
+    U16 = matMult(U15,U6,['i','o','p'])
+    print ("mult 5 done")
+    USol = matMult(U16,U7,['i','q'])
     
     i = 0
 ##    for e in USol.getTensor().flatten():
@@ -271,14 +280,8 @@ def main():
         print ("Value for bc's (" + str(left) + ", " +
                str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
     print ("Finished")
-
-    # delete this later: just one specific case
-    leftc = 8; rightc = 6
-    left = '%.3f'%(dim1[leftc])
-    right = '%.3f'%(dim1[rightc])
-    print ("Value for bc's (" + str(left) + ", " +
-            str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
-
     # print (str(USol.getTensor()))
 
+start_time = time.time()
 main()
+print(" SECONDS IN RUN TIME -------- : %s" % (time.time() - start_time))
