@@ -1,9 +1,10 @@
-#UROP Spring 717
-#5/19/17
+#UROP Spring 40140
+#5/22/140
 #Generalized matrix multiplication
 
 import itertools
 import numpy as np
+import random as rd
 
 # looks like a set of tuples
 # adds like a list
@@ -106,7 +107,7 @@ def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
     for val in dim:
-        if (abs(num - val) < dif):
+        if (abs(num - val) < dif + 0.00001):
             dif = abs(num - val)
             best = dim.index(val)
         else: #shape is down then up. Once we've gone up, done
@@ -214,8 +215,8 @@ def matMult(A, B, exposed):
 
 def main():
     # Actual testing time
-    rU1, dim1 = makeU(0,5,7)
-    rU2, dim2 = makeU(0,5,7) # symmetric
+    rU1, dim1 = makeU(0,5,40)
+    rU2, dim2 = makeU(0,5,40) # symmetric
     rU1 = np.array(rU1)
     rU2 = np.array(rU2)
     # print (rU1)
@@ -230,28 +231,54 @@ def main():
     print (str(a))
     print (str(a.mult(b)))
 
-    U1 = labeledTensor(rU1, ['i','j','k'], [7,7,7])
-    U2 = labeledTensor(rU2, ['j','k','l'], [7,7,7])
-    U3 = labeledTensor(rU1, ['k','l','m'], [7,7,7])
-    U4 = labeledTensor(rU1, ['l','m','n'], [7,7,7])
-
-##    U12 = matMult(U1,U2,['i','k','l'])
-##    U34 = matMult(U3,U4,['k','l','n'])
-##    USol = matMult(U12,U34,['i','n'])
+    U1 = labeledTensor(rU1, ['i','j','k'], [40,40,40])
+    U2 = labeledTensor(rU2, ['j','k','l'], [40,40,40])
+    U3 = labeledTensor(rU1, ['k','l','m'], [40,40,40])
+    U4 = labeledTensor(rU1, ['l','m','n'], [40,40,40])
+    U5 = labeledTensor(rU2, ['m','n','o'], [40,40,40])
+    U6 = labeledTensor(rU1, ['n','o','p'], [40,40,40])
+    U7 = labeledTensor(rU1, ['o','p','q'], [40,40,40])
 
     U12 = matMult(U1,U2,['i','k','l'])
-    U123 = matMult(U12,U3,['i','l','m'])
-    USol = matMult(U123,U4,['i','n'])
+    print ("mult 1 done")
+    U34 = matMult(U3,U4,['k','l','m','n'])
+    print ("mult 2 done")
+    Ulefts = matMult(U12,U34,['i','m','n'])
+    print ("mult 5 done")
+    U56 = matMult(U5,U6,['m','n','o','p'])
+    print ("mult 3 done")
+    U567 = matMult(U56,U7,['m','n','q'])
+    print ("mult 4 done")
+    USol = matMult(Ulefts,U567,['i','q'])
+    print ("done")
+
+##    U12 = matMult(U1,U2,['i','k','l'])
+##    U123 = matMult(U12,U3,['i','l','m'])
+##    USol = matMult(U123,U4,['i','n'])
     
     i = 0
-    for e in USol.getTensor().flatten():
-        leftc = i//7; rightc = i%7
+##    for e in USol.getTensor().flatten():
+##        leftc = i//40; rightc = i%40
+##        left = '%.3f'%(dim1[leftc])
+##        right = '%.3f'%(dim1[rightc])
+##        print ("Value for bc's (" + str(left) + ", " +
+##               str(right) + "): " + str(e))
+##        i += 1
+    for i in range(10):
+        leftc = rd.randint(0,39); rightc = rd.randint(0,39)
         left = '%.3f'%(dim1[leftc])
         right = '%.3f'%(dim1[rightc])
         print ("Value for bc's (" + str(left) + ", " +
-               str(right) + "): " + str(e))
-        i += 1
+               str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
     print ("Finished")
+
+    # delete this later: just one specific case
+    leftc = 8; rightc = 6
+    left = '%.3f'%(dim1[leftc])
+    right = '%.3f'%(dim1[rightc])
+    print ("Value for bc's (" + str(left) + ", " +
+            str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
+
     # print (str(USol.getTensor()))
 
 main()
