@@ -1,5 +1,5 @@
-#UROP Spring 40140
-#5/22/140
+#UROP Spring
+#6/7/17
 #Generalized matrix multiplication
 
 import itertools
@@ -88,7 +88,9 @@ class labeledTensor(object):
 # n possible solution values y for each variable
 # NOTE: n IS NOT THE NUMBER OF VARIABLES
 # from steady state program
-def makeU(a,b,n):
+# params contains other useful variables, like the current spatial coordinates
+# val, val1, val2 etc. contain potential steady state solution values
+def makeU(a,b,n,params):
     U = []
     dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
     for val1 in dim:
@@ -96,7 +98,7 @@ def makeU(a,b,n):
         for val in dim:
             element = []
             for val2 in dim:
-                if steadyStateTest([val1,val,val2],dim): # not hardcoded anymore!
+                if steadyStateTest([val1,val,val2],params,dim): # not hardcoded anymore!
                     element.append(solutionTuple(val))
                 else: element.append(solutionTuple())
             row.append(element)
@@ -124,7 +126,8 @@ def removeDupsOrder(vars):
 # Test for the steady state. Varies for the PDE
 # Used in making the U matrix
 # Comment out irrelevant assert statements
-def steadyStateTest(orderedvars, dim):
+# params contain other 
+def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
     return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .0001)
 
@@ -216,8 +219,9 @@ def matMult(A, B, exposed):
 
 def main():
     # Actual testing time
-    rU1, dim1 = makeU(0,5,40)
-    rU2, dim2 = makeU(0,5,40) # symmetric
+    params = []
+    rU1, dim1 = makeU(0,5,40, params)
+    rU2, dim2 = makeU(0,5,40, params) # symmetric
     rU1 = np.array(rU1)
     rU2 = np.array(rU2)
     # print (rU1)
