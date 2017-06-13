@@ -7,6 +7,7 @@ import itertools
 import numpy as np
 import random as rd
 import time
+import math
 
 # looks like a set of tuples
 # adds like a list
@@ -21,8 +22,7 @@ class solutionTuple(object):
 
     def __str__(self):
         tortn = "{("
-        for j in range(len(self.sol)):
-            sol = self.sol[j]
+        for sol in self.sol:
             for i in range(len(sol)):
                 if sol[i] is None:
                     tortn += str(sol[i])
@@ -30,7 +30,7 @@ class solutionTuple(object):
                 if i != len(sol)-1:
                     tortn += ", "
             tortn += ")"
-            if j != len(self.sol)-1:
+            if self.sol.index(sol) != len(self.sol)-1:
                 tortn += ", ("
 
         tortn += "}"
@@ -110,6 +110,9 @@ def makeU(a,b,n,params):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
+    if (min(dim) - num > (dim[1] - dim[0]) or num - max(dim) > (dim[1]-dim[0])):
+        # if our number is too far out of range
+        return math.inf
     for val in dim:
         if (abs(num - val) < dif + 0.00001):
             dif = abs(num - val)
@@ -137,7 +140,7 @@ def steadyStateTest(orderedvars,params,dim):
     # Fisher equation
     num1 = orderedvars[0] + orderedvars[2] - 2*orderedvars[1] #u_{i+1} - 2u_i + u_{i-1}
     num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    return (roundtores(abs(num1 - num2), dim) < .00001)
+    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -223,7 +226,6 @@ def matMult(A, B, exposed):
 
     Usol = np.array(Usol)
     return labeledTensor(Usol, exposed, exresos)
-    
 
 def main():
     # Actual testing time
@@ -276,8 +278,7 @@ def main():
     U16 = matMult(U15,U6,['i','o','p'])
     print ("mult 5 done")
     USol = matMult(U16,U7,['i','q'])
-    
-    i = 0
+
 ##    for e in USol.getTensor().flatten():
 ##        leftc = i//40; rightc = i%40
 ##        left = '%.3f'%(dim1[leftc])
@@ -285,14 +286,28 @@ def main():
 ##        print ("Value for bc's (" + str(left) + ", " +
 ##               str(right) + "): " + str(e))
 ##        i += 1
-    for i in range(10):
-        leftc = rd.randint(0,39); rightc = rd.randint(0,39)
-        left = '%.3f'%(dim1[leftc])
-        right = '%.3f'%(dim1[rightc])
-        print ("Value for bc's (" + str(left) + ", " +
-               str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
-    print ("Finished")
-    # print (str(USol.getTensor()))
+    
+##    for i in range(10):
+##        leftc = rd.randint(4,10); rightc = rd.randint(4,10)
+##        left = '%.3f'%(dim1[leftc])
+##        right = '%.3f'%(dim1[rightc])
+##        print ("Value for bc's (" + str(left) + ", " +
+##               str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
+##    print ("Finished")
+
+    count = 0; i = 0
+    for e in USol.getTensor().flatten():
+        if e.getSol()[0][0] is not None: # solutions exist
+            count += 1
+            leftc = i//40; rightc = i%40
+            left = '%.3f'%(dim1[leftc])
+            right = '%.3f'%(dim1[rightc])
+            print ("Value for bc's (" + str(left) + ", " +
+                  str(right) + "): " + str(e))
+        i += 1
+
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
 
 start_time = time.time()
 main()
