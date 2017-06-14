@@ -138,8 +138,14 @@ def steadyStateTest(orderedvars,params,dim):
     # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
-    num1 = orderedvars[0] + orderedvars[2] - 2*orderedvars[1] #u_{i+1} - 2u_i + u_{i-1}
-    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
+##    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
+
+    # Newell-Whitehead-Segel
+    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
+    num1 *= 5
+    num2 = orderedvars[1] * (1 - math.pow(orderedvars[1],2))
     return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
 # Generalized matrix multiplication
