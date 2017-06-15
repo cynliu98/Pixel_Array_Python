@@ -143,9 +143,15 @@ def steadyStateTest(orderedvars,params,dim):
 ##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
     # Newell-Whitehead-Segel
+##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
+##    num1 *= 5
+##    num2 = orderedvars[1] * (1 - math.pow(orderedvars[1],2))
+##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
+
+    # Zeldovich–Frank–Kamenetsky
     num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
-    num1 *= 5
-    num2 = orderedvars[1] * (1 - math.pow(orderedvars[1],2))
+    num1 *= 1
+    num2 = orderedvars[1]*(1 - orderedvars[1])*(orderedvars[1])
     return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
 # Generalized matrix multiplication
@@ -301,19 +307,21 @@ def main():
 ##               str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
 ##    print ("Finished")
 
-    count = 0; i = 0
+    count = 0; i = 0; countsol = 0;
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
             leftc = i//40; rightc = i%40
             left = '%.3f'%(dim1[leftc])
             right = '%.3f'%(dim1[rightc])
+            countsol += str(e).count('(')
             print ("Value for bc's (" + str(left) + ", " +
                   str(right) + "): " + str(e))
         i += 1
 
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
+    print ("There were " + str(countsol) + " solutions")
 
 start_time = time.time()
 main()
