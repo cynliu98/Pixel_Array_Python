@@ -1,5 +1,5 @@
 # UROP Summer
-# 6/9/17
+# 6/20/17
 # Generalized matrix multiplication
 # Inhomogeneous Testing
 
@@ -8,6 +8,7 @@ import numpy as np
 import random as rd
 import time
 import math
+from string import ascii_lowercase as al
 
 # looks like a set of tuples
 # adds like a list
@@ -106,6 +107,22 @@ def makeU(a,b,n,params):
         U.append(row)
     return U, dim
 
+# If all your U's have the same range and dimension
+# (In other words, without the labels, all the U's are identical)
+# This method resolves some of the hardcoding issues
+# numMats: number of matrices
+# a, b, n, params as defined in makeU
+# varNames: list of all variable names in all the U's
+# dimU: the dimension of each U
+def makeAllU(numMats,a,b,n,params,varnames,dimU):
+    assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
+    Us = []
+    templateTensor, dim1 = makeU(a,b,n,params)
+    for i in range(numMats):
+        Us.append(labeledTensor(templateTensor, list(varnames[i:(i+dimU)]), [n]*dimU))
+
+    return Us, dim1
+
 # rounding to resolution - from steady state program
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
@@ -135,13 +152,13 @@ def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
 
     # heat equation
-    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
+    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
-    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    num1 *= -1
-    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
+##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
+##    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+##    num1 *= -1
+##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
     # Newell-Whitehead-Segel
 ##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
@@ -242,30 +259,22 @@ def matMult(A, B, exposed):
 
 def main():
     # Actual testing time
-    params = []
-    rU1, dim1 = makeU(0,5,40, params)
-    # rU2, dim2 = makeU(0,5,40, params) # symmetric
-    rU1 = np.array(rU1)
-    # rU2 = np.array(rU2)
-    # print (rU1)
-    
-##    a = solutionTuple([1,2,3,4,5])
-##    z = solutionTuple()
-##    print ("Nothing: " + str(z))
-##    print (str(a))
-##    b = solutionTuple(2)
-##    a.add(b)
-##    # a.mult(b)
-##    print (str(a))
-##    print (str(a.mult(b)))
+    params = []; numMats = 7; dimU = 3
+    varnames = al[8:8+numMats+dimU-1]
+    print (varnames)
 
-    U1 = labeledTensor(rU1, ['i','j','k'], [40,40,40])
-    U2 = labeledTensor(rU1, ['j','k','l'], [40,40,40])
-    U3 = labeledTensor(rU1, ['k','l','m'], [40,40,40])
-    U4 = labeledTensor(rU1, ['l','m','n'], [40,40,40])
-    U5 = labeledTensor(rU1, ['m','n','o'], [40,40,40])
-    U6 = labeledTensor(rU1, ['n','o','p'], [40,40,40])
-    U7 = labeledTensor(rU1, ['o','p','q'], [40,40,40])
+    Us, dim1 = makeAllU(numMats,0,5,40,params,varnames,dimU)
+    # rU1, dim1 = makeU(0,5,40, params)
+    # rU2, dim2 = makeU(0,5,40, params) # symmetric
+    # rU1 = np.array(rU1)
+
+##    U1 = labeledTensor(rU1, ['i','j','k'], [40,40,40])
+##    U2 = labeledTensor(rU1, ['j','k','l'], [40,40,40])
+##    U3 = labeledTensor(rU1, ['k','l','m'], [40,40,40])
+##    U4 = labeledTensor(rU1, ['l','m','n'], [40,40,40])
+##    U5 = labeledTensor(rU1, ['m','n','o'], [40,40,40])
+##    U6 = labeledTensor(rU1, ['n','o','p'], [40,40,40])
+##    U7 = labeledTensor(rU1, ['o','p','q'], [40,40,40])
 
 ##    U12 = matMult(U1,U2,['i','k','l'])
 ##    print ("mult 1 done")
@@ -280,49 +289,42 @@ def main():
 ##    USol = matMult(Ulefts,U567,['i','q'])
 ##    print ("done")
 
-    U12 = matMult(U1,U2,['i','k','l'])
+    U12 = matMult(Us[0],Us[1],['i','k','l'])
     print ("mult 1 done")
-    U123 = matMult(U12,U3,['i','l','m'])
+    U123 = matMult(U12,Us[2],['i','l','m'])
     print ("mult 2 done")
-    U14 = matMult(U123,U4,['i','m','n'])
+    U14 = matMult(U123,Us[3],['i','m','n'])
     print ("mult 3 done")
-    U15 = matMult(U14,U5,['i','n','o'])
+    U15 = matMult(U14,Us[4],['i','n','o'])
     print ("mult 4 done")
-    U16 = matMult(U15,U6,['i','o','p'])
+    U16 = matMult(U15,Us[5],['i','o','p'])
     print ("mult 5 done")
-    USol = matMult(U16,U7,['i','q'])
+    USol = matMult(U16,Us[6],['i','q'])
 
-##    for e in USol.getTensor().flatten():
-##        leftc = i//40; rightc = i%40
-##        left = '%.3f'%(dim1[leftc])
-##        right = '%.3f'%(dim1[rightc])
-##        print ("Value for bc's (" + str(left) + ", " +
-##               str(right) + "): " + str(e))
-##        i += 1
-    
-##    for i in range(10):
-##        leftc = rd.randint(4,10); rightc = rd.randint(4,10)
-##        left = '%.3f'%(dim1[leftc])
-##        right = '%.3f'%(dim1[rightc])
-##        print ("Value for bc's (" + str(left) + ", " +
-##               str(right) + "): " + str(USol.getTensor().flatten()[40*leftc+rightc]))
-##    print ("Finished")
-
-    count = 0; i = 0; countsol = 0;
+    i = 0
     for e in USol.getTensor().flatten():
-        if e.getSol()[0][0] is not None: # solutions exist
-            count += 1
-            leftc = i//40; rightc = i%40
-            left = '%.3f'%(dim1[leftc])
-            right = '%.3f'%(dim1[rightc])
-            countsol += str(e).count('(')
-            print ("Value for bc's (" + str(left) + ", " +
-                  str(right) + "): " + str(e))
+        leftc = i//40; rightc = i%40
+        left = '%.3f'%(dim1[leftc])
+        right = '%.3f'%(dim1[rightc])
+        print ("Value for bc's (" + str(left) + ", " +
+               str(right) + "): " + str(e))
         i += 1
 
-
-    print ("There were " + str(count) + " sets of boundary conditions with solutions")
-    print ("There were " + str(countsol) + " solutions")
+##    count = 0; i = 0; countsol = 0;
+##    for e in USol.getTensor().flatten():
+##        if e.getSol()[0][0] is not None: # solutions exist
+##            count += 1
+##            leftc = i//40; rightc = i%40
+##            left = '%.3f'%(dim1[leftc])
+##            right = '%.3f'%(dim1[rightc])
+##            countsol += str(e).count('(')
+##            print ("Value for bc's (" + str(left) + ", " +
+##                  str(right) + "): " + str(e))
+##        i += 1
+##
+##
+##    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+##    print ("There were " + str(countsol) + " solutions")
 
 start_time = time.time()
 main()
