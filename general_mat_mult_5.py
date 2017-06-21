@@ -119,7 +119,7 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU):
     Us = []
     templateTensor, dim1 = makeU(a,b,n,params)
     for i in range(numMats):
-        Us.append(labeledTensor(templateTensor, list(varnames[i:(i+dimU)]), [n]*dimU))
+        Us.append(labeledTensor(templateTensor, varnames[i:(i+dimU)], [n]*dimU))
 
     return Us, dim1
 
@@ -259,9 +259,20 @@ def matMult(A, B, exposed):
 
 def main():
     # Actual testing time
-    params = []; numMats = 7; dimU = 3
-    varnames = al[8:8+numMats+dimU-1]
+    params = []; numMats = 60; dimU = 3
+
+    alused = al[8:] + al[0:8]
+    bound = numMats + dimU - 1 # how many variable names we need - 1
+    assert (bound >= 0)
+    varnames = list(alused[0:bound]); i = 0
+    while (bound > 26): # we want distinct variable names
+        bound -= 26
+        newvars = [(varnames[j] + str(i)) for j in range(min(bound,26))]
+        varnames += newvars
+        i += 1
+ 
     print (varnames)
+    return
 
     Us, dim1 = makeAllU(numMats,0,5,40,params,varnames,dimU)
     # rU1, dim1 = makeU(0,5,40, params)
