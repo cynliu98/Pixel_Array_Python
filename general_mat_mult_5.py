@@ -172,6 +172,8 @@ def steadyStateTest(orderedvars,params,dim):
 ##    num2 = orderedvars[1]*(1 - orderedvars[1])*(orderedvars[1])
 ##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
+    # -----------------
+
 # Generalized matrix multiplication
 # A times B (labelled tensors)
 def matMult(A, B, exposed):
@@ -257,9 +259,58 @@ def matMult(A, B, exposed):
     Usol = np.array(Usol)
     return labeledTensor(Usol, exposed, exresos)
 
+# Determining whether two solutions are identical
+# Algorithm: difference between two solutions is less than
+# 1/2 * (number of variables) * (dif)^2 where dif is
+# the difference between two adjacent bins (possible solution values)
+
+# print the entire matrix
+def printall(Usol):
+    i = 0
+    for e in USol.getTensor().flatten():
+        leftc = i//40; rightc = i%40
+        left = '%.3f'%(dim1[leftc])
+        right = '%.3f'%(dim1[rightc])
+        print ("Value for bc's (" + str(left) + ", " +
+               str(right) + "): " + str(e))
+        i += 1
+
+# print only all the solutions
+def printSols(Usol):
+    count = 0; i = 0; countsol = 0;
+    for e in USol.getTensor().flatten():
+        if e.getSol()[0][0] is not None: # solutions exist
+            count += 1
+            leftc = i//40; rightc = i%40
+            left = '%.3f'%(dim1[leftc])
+            right = '%.3f'%(dim1[rightc])
+            countsol += str(e).count('(')
+            print ("Value for bc's (" + str(left) + ", " +
+                  str(right) + "): " + str(e))
+        i += 1
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+    print ("There were " + str(countsol) + " solutions")
+
+# print only the boundary conditions with solutions
+# do not care for the number of solutions
+def printBCs(Usol):
+    count = 0; i = 0
+    for e in USol.getTensor().flatten():
+        if e.getSol()[0][0] is not None: # solutions exist
+            count += 1
+            leftc = i//40; rightc = i%40
+            left = '%.3f'%(dim1[leftc])
+            right = '%.3f'%(dim1[rightc])
+            print ("Value for bc's (" + str(left) + ", " +
+                  str(right) + ")")
+        i += 1
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+
 def main():
     # Actual testing time
-    params = []; numMats = 60; dimU = 3
+    params = []; numMats = 7; dimU = 3
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -312,30 +363,8 @@ def main():
     print ("mult 5 done")
     USol = matMult(U16,Us[6],['i','q'])
 
-    i = 0
-    for e in USol.getTensor().flatten():
-        leftc = i//40; rightc = i%40
-        left = '%.3f'%(dim1[leftc])
-        right = '%.3f'%(dim1[rightc])
-        print ("Value for bc's (" + str(left) + ", " +
-               str(right) + "): " + str(e))
-        i += 1
-
-##    count = 0; i = 0; countsol = 0;
-##    for e in USol.getTensor().flatten():
-##        if e.getSol()[0][0] is not None: # solutions exist
-##            count += 1
-##            leftc = i//40; rightc = i%40
-##            left = '%.3f'%(dim1[leftc])
-##            right = '%.3f'%(dim1[rightc])
-##            countsol += str(e).count('(')
-##            print ("Value for bc's (" + str(left) + ", " +
-##                  str(right) + "): " + str(e))
-##        i += 1
-##
-##
-##    print ("There were " + str(count) + " sets of boundary conditions with solutions")
-##    print ("There were " + str(countsol) + " solutions")
+    # printall(Usol)
+    # printSols(Usol)
 
 start_time = time.time()
 main()
