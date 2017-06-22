@@ -40,6 +40,12 @@ class solutionTuple(object):
     def getSol(self):
         return self.sol
 
+    def setSol(self,newsol):
+        if type(sol) == list:
+            self.sol = [[i for i in sol]]
+        else:
+            self.sol = [[sol]]
+
     def add(self, tup2): # rightwards add
         j = 0
         if self.sol[0][0] is None:
@@ -48,6 +54,10 @@ class solutionTuple(object):
 
         for i in range(j, len(tup2.getSol())):
             self.sol.append(tup2.getSol()[i])
+
+    def delete(self, tup): # remove tup from self.sol
+        print ("This is what we want to remove: " + str([tup.getSol()[0]]))
+        self.sol.remove(tup.getSol()[0])
         
     def mult(self, tup2): # rightwards multiply
         if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
@@ -152,13 +162,13 @@ def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
 
     # heat equation
-    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
+    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
-##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-##    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-##    num1 *= -1
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
+    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
+    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+    num1 *= 1
+    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
     # Newell-Whitehead-Segel
 ##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
@@ -263,9 +273,45 @@ def matMult(A, B, exposed):
 # Algorithm: difference between two solutions is less than
 # 1/2 * (number of variables) * (dif)^2 where dif is
 # the difference between two adjacent bins (possible solution values)
+def reduceSolutions(USol, dim, numMats):
+    dif = dim[1] - dim[0]
+    print ("dif: " + str(dif))
+    maxdev = .5 * (numMats) * math.pow(dif,2)
+    for e in USol.getTensor().flatten():
+        sol = e.getSol()
+
+        uniques = []; i = 0; notuniques = []
+        for s in sol:
+            if (i == 0):
+                uniques.append(s)
+            else:
+                isUnique = True
+                for k in range(len(uniques)):
+                    dev = 0
+                    for j in range(len(s)):
+                        dev += math.pow(s[j] - uniques[k][j], 2)
+
+                    dev *= .5
+                    if (dev <= maxdev): # not a unique solution
+                        isUnique = False
+                        notuniques.append(solutionTuple(s))
+                        break
+
+                if isUnique:
+                    uniques.append(s)
+                    print ("These are the uniques: " + str(uniques))
+                             
+            i += 1
+
+        # remove all not unique solutions
+        for rep in notuniques:
+            print ("This is the problematic solution: " + str(rep))
+            print ("This is what e looks like now: " + str(e))
+            e.delete(rep)
+            print ("This is what e looks like after: " + str(e))
 
 # print the entire matrix
-def printall(Usol):
+def printall(USol, dim1):
     i = 0
     for e in USol.getTensor().flatten():
         leftc = i//40; rightc = i%40
@@ -276,7 +322,7 @@ def printall(Usol):
         i += 1
 
 # print only all the solutions
-def printSols(Usol):
+def printSols(USol, dim1):
     count = 0; i = 0; countsol = 0;
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
@@ -294,7 +340,7 @@ def printSols(Usol):
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
-def printBCs(Usol):
+def printBCs(USol, dim1):
     count = 0; i = 0
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
@@ -323,20 +369,8 @@ def main():
         i += 1
  
     print (varnames)
-    return
 
     Us, dim1 = makeAllU(numMats,0,5,40,params,varnames,dimU)
-    # rU1, dim1 = makeU(0,5,40, params)
-    # rU2, dim2 = makeU(0,5,40, params) # symmetric
-    # rU1 = np.array(rU1)
-
-##    U1 = labeledTensor(rU1, ['i','j','k'], [40,40,40])
-##    U2 = labeledTensor(rU1, ['j','k','l'], [40,40,40])
-##    U3 = labeledTensor(rU1, ['k','l','m'], [40,40,40])
-##    U4 = labeledTensor(rU1, ['l','m','n'], [40,40,40])
-##    U5 = labeledTensor(rU1, ['m','n','o'], [40,40,40])
-##    U6 = labeledTensor(rU1, ['n','o','p'], [40,40,40])
-##    U7 = labeledTensor(rU1, ['o','p','q'], [40,40,40])
 
 ##    U12 = matMult(U1,U2,['i','k','l'])
 ##    print ("mult 1 done")
@@ -363,8 +397,10 @@ def main():
     print ("mult 5 done")
     USol = matMult(U16,Us[6],['i','q'])
 
-    # printall(Usol)
-    # printSols(Usol)
+    reduceSolutions(USol, dim1, numMats)
+
+    # printall(USol, dim1)
+    printSols(USol, dim1)
 
 start_time = time.time()
 main()
