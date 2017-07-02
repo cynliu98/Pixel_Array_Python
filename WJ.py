@@ -56,7 +56,6 @@ class solutionTuple(object):
             self.sol.append(tup2.getSol()[i])
 
     def delete(self, tup): # remove tup from self.sol
-        print ("This is what we want to remove: " + str([tup.getSol()[0]]))
         self.sol.remove(tup.getSol()[0])
         
     def mult(self, tup2): # rightwards multiply
@@ -102,6 +101,8 @@ class labeledTensor(object):
 # from steady state program
 # params contains other useful variables, like the current spatial coordinates
 # val, val1, val2 etc. contain potential steady state solution values
+# Because of the nature of the discretized equation, let
+# val = n_j, val1 = n_{j+1}, val2 = n_{j+2}
 def makeU(a,b,n,params):
     U = []
     dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
@@ -110,7 +111,7 @@ def makeU(a,b,n,params):
         for val in dim:
             element = []
             for val2 in dim:
-                if steadyStateTest([val1,val,val2],params,dim): # not hardcoded anymore!
+                if steadyStateTest([val,val1,val2],params,dim): # not hardcoded anymore!
                     element.append(solutionTuple(val))
                 else: element.append(solutionTuple())
             row.append(element)
@@ -121,14 +122,19 @@ def makeU(a,b,n,params):
 # (In other words, without the labels, all the U's are identical)
 # This method resolves some of the hardcoding issues
 # numMats: number of matrices
-# a, b, n, params as defined in makeU
+# a, b, n, params as defined in makeU, although params contains all U's
 # varNames: list of all variable names in all the U's
 # dimU: the dimension of each U
-def makeAllU(numMats,a,b,n,params,varnames,dimU):
+# paramlen is the length of params for each U
+# difparams is a boolean indicating whether each U's params are different or not
+def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
     assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
     Us = []
-    templateTensor, dim1 = makeU(a,b,n,params)
+    if not(difparams):
+        templateTensor, dim1 = makeU(a,b,n,params)
     for i in range(numMats):
+        if difparams:
+            templateTensor, dim1 = makeU(a,b,n,params[i*paramlen,(i+1)*paramlen])
         Us.append(labeledTensor(templateTensor, varnames[i:(i+dimU)], [n]*dimU))
 
     return Us, dim1
@@ -154,34 +160,17 @@ def removeDupsOrder(vars):
     seen_add = seen.add
     return [x for x in vars if not (x in seen or seen_add(x))]
 
-# Test for the steady state. Varies for the PDE
-# Used in making the U matrix
-# Comment out irrelevant assert statements
-# params contain other variables as described in makeU
+# Test for the steady state of the Wilhelmsson-Jancel equation
 def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
-
-    # heat equation
-    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
-
-    # Fisher equation
-    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    num1 *= 1
-    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
-
-    # Newell-Whitehead-Segel
-##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
-##    num1 *= 5
-##    num2 = orderedvars[1] * (1 - math.pow(orderedvars[1],2))
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
-
-    # Zeldovich–Frank–Kamenetsky
-##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
-##    num1 *= 1
-##    num2 = orderedvars[1]*(1 - orderedvars[1])*(orderedvars[1])
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
-
+    p = float(params[0]); delta = float(params[1])
+    val = orderedvars[0]; val1 = orderedvars[1]; val2 = orderedvars[2]
+    if ((p < 0) or (delta < 0)) and ((val == 0) or (val1 == 0)):
+        return False
+    LHS = -math.pow(val,p)
+    RHS = math.pow(val1,delta)*(val2 - val1) - math.pow(val,delta)*(val1 - val)
+    return (abs(roundtores(LHS, dim) + roundtores(RHS, dim)) < .00001)
+    
     # -----------------
 
 # Generalized matrix multiplication
@@ -275,7 +264,6 @@ def matMult(A, B, exposed):
 # the difference between two adjacent bins (possible solution values)
 def reduceSolutions(USol, dim, numMats):
     dif = dim[1] - dim[0]
-    print ("dif: " + str(dif))
     maxdev = .5 * (numMats) * math.pow(dif,2)
     for e in USol.getTensor().flatten():
         sol = e.getSol()
@@ -299,17 +287,13 @@ def reduceSolutions(USol, dim, numMats):
 
                 if isUnique:
                     uniques.append(s)
-                    print ("These are the uniques: " + str(uniques))
                              
             i += 1
 
         # remove all not unique solutions
         for rep in notuniques:
-            print ("This is the problematic solution: " + str(rep))
-            print ("This is what e looks like now: " + str(e))
             e.delete(rep)
-            print ("This is what e looks like after: " + str(e))
-
+        
 # print the entire matrix
 def printall(USol, dim1):
     i = 0
@@ -356,7 +340,9 @@ def printBCs(USol, dim1):
 
 def main():
     # Actual testing time
-    params = []; numMats = 7; dimU = 3
+    # params = [p, delta] fulfilling p = delta + 1
+    numMats = 7; dimU = 3
+    params = [3,1]
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -367,23 +353,8 @@ def main():
         newvars = [(varnames[j] + str(i)) for j in range(min(bound,26))]
         varnames += newvars
         i += 1
- 
-    print (varnames)
 
     Us, dim1 = makeAllU(numMats,0,5,40,params,varnames,dimU)
-
-##    U12 = matMult(U1,U2,['i','k','l'])
-##    print ("mult 1 done")
-##    U34 = matMult(U3,U4,['k','l','m','n'])
-##    print ("mult 2 done")
-##    Ulefts = matMult(U12,U34,['i','m','n'])
-##    print ("mult 5 done")
-##    U56 = matMult(U5,U6,['m','n','o','p'])
-##    print ("mult 3 done")
-##    U567 = matMult(U56,U7,['m','n','q'])
-##    print ("mult 4 done")
-##    USol = matMult(Ulefts,U567,['i','q'])
-##    print ("done")
 
     U12 = matMult(Us[0],Us[1],['i','k','l'])
     print ("mult 1 done")
