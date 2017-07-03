@@ -208,7 +208,6 @@ def matMult(A, B, exposed):
     Usol = np.empty(shape)
     Usol = Usol.tolist()
 
-    # THIS IS THE CORRECTED
     # for each set of possible boundary conditions taking from A and B:
     for bci in np.ndenumerate(Usol):
         bc = list(list(bci)[0]) #extract tuple of bc indices
@@ -295,10 +294,10 @@ def reduceSolutions(USol, dim, numMats):
             e.delete(rep)
         
 # print the entire matrix
-def printall(USol, dim1):
+def printall(USol, dim1, bins):
     i = 0
     for e in USol.getTensor().flatten():
-        leftc = i//40; rightc = i%40
+        leftc = i//bins; rightc = i%bins
         left = '%.3f'%(dim1[leftc])
         right = '%.3f'%(dim1[rightc])
         print ("Value for bc's (" + str(left) + ", " +
@@ -306,12 +305,14 @@ def printall(USol, dim1):
         i += 1
 
 # print only all the solutions
-def printSols(USol, dim1):
+def printSols(USol, dim1, bins):
+    assert bins > 0
     count = 0; i = 0; countsol = 0;
+    print (len(USol.getTensor().flatten()))
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
-            leftc = i//40; rightc = i%40
+            leftc = i//bins; rightc = i%bins
             left = '%.3f'%(dim1[leftc])
             right = '%.3f'%(dim1[rightc])
             countsol += str(e).count('(')
@@ -324,12 +325,12 @@ def printSols(USol, dim1):
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
-def printBCs(USol, dim1):
+def printBCs(USol, dim1, bins):
     count = 0; i = 0
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
-            leftc = i//40; rightc = i%40
+            leftc = i//bins; rightc = i%bins
             left = '%.3f'%(dim1[leftc])
             right = '%.3f'%(dim1[rightc])
             print ("Value for bc's (" + str(left) + ", " +
@@ -342,7 +343,8 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
     numMats = 7; dimU = 3
-    params = [3,1]
+    params = [2,3]
+    bins = 40
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -354,24 +356,38 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,5,40,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
+    # print (str(dim1))
 
-    U12 = matMult(Us[0],Us[1],['i','k','l'])
-    print ("mult 1 done")
-    U123 = matMult(U12,Us[2],['i','l','m'])
-    print ("mult 2 done")
-    U14 = matMult(U123,Us[3],['i','m','n'])
-    print ("mult 3 done")
-    U15 = matMult(U14,Us[4],['i','n','o'])
-    print ("mult 4 done")
-    U16 = matMult(U15,Us[5],['i','o','p'])
-    print ("mult 5 done")
-    USol = matMult(U16,Us[6],['i','q'])
+    # U12 = matMult(Us[0],Us[1],['i','k','l'])
+    # print ("mult 1 done")
+    # U123 = matMult(U12,Us[2],['i','l','m'])
+    # print ("mult 2 done")
+    # U14 = matMult(U123,Us[3],['i','m','n'])
+    # print ("mult 3 done")
+    # U15 = matMult(U14,Us[4],['i','n','o'])
+    # print ("mult 4 done")
+    # U16 = matMult(U15,Us[5],['i','o','p'])
+    # print ("mult 5 done")
+    # USol = matMult(U16,Us[6],['i','q'])
 
-    reduceSolutions(USol, dim1, numMats)
+    prods = []
+    for i in range(len(Us)-2):
+        if prods: # if not empty
+            rightDims = Us[i+1].getDims()[-2:]
+            assert len(rightDims) == 2
+            allDims = ['i'] + rightDims
+            prods.append(matMult(prods[i-1],Us[i+1], allDims))
+        else:
+            prods.append(matMult(Us[0],Us[1],['i','k','l']))
+
+        print ("mult " + str(i+1) + " done")
+
+    prods.append(matMult(prods[len(Us)-3],Us[-1],[varnames[0], varnames[-1]]))
+    reduceSolutions(prods[-1], dim1, numMats)
 
     # printall(USol, dim1)
-    printSols(USol, dim1)
+    printSols(prods[-1], dim1, bins)
 
 start_time = time.time()
 main()
