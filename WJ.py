@@ -167,9 +167,9 @@ def steadyStateTest(orderedvars,params,dim):
     val = orderedvars[0]; val1 = orderedvars[1]; val2 = orderedvars[2]
     if ((p < 0) or (delta < 0)) and ((val == 0) or (val1 == 0)):
         return False
-    LHS = -math.pow(val,p)
-    RHS = math.pow(val1,delta)*(val2 - val1) - math.pow(val,delta)*(val1 - val)
-    return (abs(roundtores(LHS, dim) + roundtores(RHS, dim)) < .00001)
+    source = math.pow(val,p)
+    diffusion = math.pow(val1,delta)*(val2 - val1) - math.pow(val,delta)*(val1 - val)
+    return (abs(roundtores(source + diffusion, dim)) < .00001)
     
     # -----------------
 
@@ -343,7 +343,7 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
     numMats = 7; dimU = 3
-    params = [2,3]
+    params = [-1,1]
     bins = 40
 
     alused = al[8:] + al[0:8]
