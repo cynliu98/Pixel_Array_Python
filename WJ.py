@@ -165,8 +165,11 @@ def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
     p = float(params[0]); delta = float(params[1])
     val = orderedvars[0]; val1 = orderedvars[1]; val2 = orderedvars[2]
-    if ((p < 0) or (delta < 0)) and ((val == 0) or (val1 == 0)):
+    if ((p < 0) or (delta < 0)) and ((val == 0) or (val1 == 0)): # check for negative powers of 0
         return False
+    if (abs(p - round(p)) > .0001 and val < 0) or (abs(delta - round(delta)) > .0001 and (val1 < 0 or val < 0)):
+        return False
+
     source = math.pow(val,p)
     diffusion = math.pow(val1,delta)*(val2 - val1) - math.pow(val,delta)*(val1 - val)
     return (abs(roundtores(source + diffusion, dim)) < .00001)
@@ -342,8 +345,9 @@ def printBCs(USol, dim1, bins):
 def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
-    numMats = 7; dimU = 3
-    params = [-1,1]
+
+    numMats = 20; dimU = 3
+    params = [2,.5]
     bins = 40
 
     alused = al[8:] + al[0:8]
