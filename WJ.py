@@ -111,7 +111,7 @@ def makeU(a,b,n,params):
         for val in dim:
             element = []
             for val2 in dim:
-                if steadyStateTest([val,val1,val2],params,dim): # not hardcoded anymore!
+                if steadyStateTest([val1,val,val2],params,dim): # not hardcoded anymore!
                     element.append(solutionTuple(val))
                 else: element.append(solutionTuple())
             row.append(element)
@@ -147,7 +147,7 @@ def roundtores(num, dim): #resolution n
         # if our number is too far out of range
         return math.inf
     for val in dim:
-        if (abs(num - val) < dif + 0.00001):
+        if (abs(num - val) < dif + 0.00001): # round up
             dif = abs(num - val)
             best = dim.index(val)
         else: #shape is down then up. Once we've gone up, done
@@ -163,15 +163,16 @@ def removeDupsOrder(vars):
 # Test for the steady state of the Wilhelmsson-Jancel equation
 def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
+    h = 1
     p = float(params[0]); delta = float(params[1])
-    val = orderedvars[0]; val1 = orderedvars[1]; val2 = orderedvars[2]
-    if ((p < 0) or (delta < 0)) and ((val == 0) or (val1 == 0)): # check for negative powers of 0
+    valleft = orderedvars[0]; val = orderedvars[1]; valright = orderedvars[2]
+    if ((p < 0) or (delta < 0)) and ((val == 0) or (valleft == 0)): # check for negative powers of 0
         return False
-    if (abs(p - round(p)) > .0001 and val < 0) or (abs(delta - round(delta)) > .0001 and (val1 < 0 or val < 0)):
+    if (abs(p - round(p)) > .0001 and valleft < 0) or (abs(delta - round(delta)) > .0001 and (val < 0 or valleft < 0)):
         return False
 
-    source = math.pow(val,p)
-    diffusion = math.pow(val1,delta)*(val2 - val1) - math.pow(val,delta)*(val1 - val)
+    source = math.pow(valleft,p)
+    diffusion = (math.pow(val,delta)*(valright - val) - math.pow(valleft,delta)*(val - valleft)) * 1/(math.pow(h,2))
     return (abs(roundtores(source + diffusion, dim)) < .00001)
     
     # -----------------
@@ -308,19 +309,20 @@ def printall(USol, dim1, bins):
         i += 1
 
 # print only all the solutions
-def printSols(USol, dim1, bins):
+# Assumes 2 dimensional
+def printSols(USol, dim1, bins, dimSol):
     assert bins > 0
     count = 0; i = 0; countsol = 0;
-    print (len(USol.getTensor().flatten()))
     for e in USol.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
-            leftc = i//bins; rightc = i%bins
-            left = '%.3f'%(dim1[leftc])
-            right = '%.3f'%(dim1[rightc])
+            indices = []; vals = []
+            for j in range(dimSol):
+                indices.append(i//int(math.pow(bins,j)) % bins)
+                vals.append('%.2f'%dim1[indices[-1]])
+
             countsol += str(e).count('(')
-            print ("Value for bc's (" + str(left) + ", " +
-                  str(right) + "): " + str(e))
+            print ("Value for bc's " + str(vals) + ": " + str(e))
         i += 1
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
@@ -328,6 +330,7 @@ def printSols(USol, dim1, bins):
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
+# Assumes 2 dimensional
 def printBCs(USol, dim1, bins):
     count = 0; i = 0
     for e in USol.getTensor().flatten():
@@ -347,8 +350,8 @@ def main():
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 20; dimU = 3
-    params = [2,.5]
-    bins = 40
+    params = [3,1]
+    bins = 41
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -360,8 +363,8 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
-    # print (str(dim1))
+    Us, dim1 = makeAllU(numMats,-1,1,bins,params,varnames,dimU)
+    print (str(dim1))
 
     # U12 = matMult(Us[0],Us[1],['i','k','l'])
     # print ("mult 1 done")
@@ -391,7 +394,8 @@ def main():
     reduceSolutions(prods[-1], dim1, numMats)
 
     # printall(USol, dim1)
-    printSols(prods[-1], dim1, bins)
+    dimSol = 2
+    printSols(prods[-1], dim1, bins, dimSol)
 
 start_time = time.time()
 main()
