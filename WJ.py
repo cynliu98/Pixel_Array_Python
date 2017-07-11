@@ -143,7 +143,7 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if (min(dim) - num > (dim[1] - dim[0]) or num - max(dim) > (dim[1]-dim[0])):
+    if ((min(dim) - num) > (dim[1] - dim[0]) or (num - max(dim)) > (dim[1]-dim[0])):
         # if our number is too far out of range
         return math.inf
     for val in dim:
@@ -162,6 +162,10 @@ def removeDupsOrder(vars):
 
 # Test for the steady state of the Wilhelmsson-Jancel equation
 def steadyStateTest(orderedvars,params,dim):
+    # heat equation
+    # the basic test
+    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2.0, dim) - orderedvars[1]) < .00001)
+
     assert(len(orderedvars) == 3)
     h = 1
     p = float(params[0]); delta = float(params[1])
@@ -322,7 +326,7 @@ def printSols(USol, dim1, bins, dimSol):
                 vals.append('%.2f'%dim1[indices[-1]])
 
             countsol += str(e).count('(')
-            print ("Value for bc's " + str(vals) + ": " + str(e))
+            print ("Value for bc's " + str(vals[::-1]) + ": " + str(e))
         i += 1
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
@@ -350,8 +354,8 @@ def main():
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 20; dimU = 3
-    params = [3,1]
-    bins = 41
+    params = [2,1]
+    bins = 40
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -363,8 +367,15 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,-1,1,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
     print (str(dim1))
+
+    # debugging the steady state tester
+    # print (steadyStateTest([0,5,.128],[2,1],dim1))
+    # print (steadyStateTest([0,.385,.513],[2,1],dim1))
+    # print (steadyStateTest([0,.769,.128],[2,1],dim1))
+
+    # return
 
     # U12 = matMult(Us[0],Us[1],['i','k','l'])
     # print ("mult 1 done")
@@ -384,13 +395,13 @@ def main():
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prods.append(matMult(prods[i-1],Us[i+1], allDims))
+            prods.append(matMult(prods[-1],Us[i+1], allDims))
         else:
             prods.append(matMult(Us[0],Us[1],['i','k','l']))
 
         print ("mult " + str(i+1) + " done")
 
-    prods.append(matMult(prods[len(Us)-3],Us[-1],[varnames[0], varnames[-1]]))
+    prods.append(matMult(prods[-1],Us[-1],[varnames[0], varnames[-1]])) # the final multiplication
     reduceSolutions(prods[-1], dim1, numMats)
 
     # printall(USol, dim1)
