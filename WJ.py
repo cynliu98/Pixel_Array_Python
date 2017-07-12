@@ -354,7 +354,7 @@ def main():
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 20; dimU = 3
-    params = [2,1]
+    params = [-1,2]
     bins = 40
 
     alused = al[8:] + al[0:8]
