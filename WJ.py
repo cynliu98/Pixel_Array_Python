@@ -46,7 +46,7 @@ class solutionTuple(object):
         else:
             self.sol = [[sol]]
 
-    def add(self, tup2): # rightwards add
+    def add(self, tup2): # rightwards add - set concatenation
         j = 0
         if self.sol[0][0] is None:
             self.sol = [tup2.getSol()[0]]
@@ -58,7 +58,7 @@ class solutionTuple(object):
     def delete(self, tup): # remove tup from self.sol
         self.sol.remove(tup.getSol()[0])
         
-    def mult(self, tup2): # rightwards multiply
+    def mult(self, tup2): # rightwards multiply - Cartesian multiplication
         if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
             newself = []
             bothlists = [self.sol, tup2.getSol()]
@@ -67,7 +67,11 @@ class solutionTuple(object):
                 e = [item for sublist in e for item in sublist]
                 newself.append(e)
             # print (newself)
-            return solutionTuple(newself[0]) # don't want to modify the tensor
+            toRtn = solutionTuple(newself[0])
+            for i in range(1, len(newself)):
+                toRtn.add(solutionTuple(newself[i]))
+            return toRtn
+            # return solutionTuple(newself[0]) # don't want to modify the tensor
         return solutionTuple()
 
 class labeledTensor(object):
@@ -252,7 +256,7 @@ def matMult(A, B, exposed):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            prod = subela.mult(subelb) # changes subela
+            prod = subela.mult(subelb)
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
                 el.add(prod)
 
@@ -353,8 +357,17 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
+    # solutionTuple testing - remove
+    tup1 = solutionTuple([1,2,3,4,5])
+    tup2 = solutionTuple([.5])
+    tup3 = tup1.mult(tup2)
+    print (tup3)
+    tup3.add(tup2)
+    print (tup3)
+    print (tup3.mult(tup2))
+
     numMats = 20; dimU = 3
-    params = [1.5,.5]
+    params = [3,1]
     bins = 40
 
     alused = al[8:] + al[0:8]
