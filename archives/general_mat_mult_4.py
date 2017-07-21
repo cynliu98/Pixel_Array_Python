@@ -139,7 +139,7 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if (min(dim) - num > (dim[1] - dim[0]) or num - max(dim) > (dim[1]-dim[0])):
+    if (min(dim) - num > (dim[1] - dim[0])/2 or num - max(dim) > (dim[1]-dim[0])/2):
         # if our number is too far out of range
         return math.inf
     for val in dim:

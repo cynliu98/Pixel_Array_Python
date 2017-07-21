@@ -1,20 +1,30 @@
 # UROP Summer 2017
 # July 13
 # A file for analyzing many solutions
-# And their discrepancies
+# And their discrepancies from another, fixed, solution
 
 import math
 
 def readSolutions(fname):
     f = open(fname, 'r') # open the file of solutions
-    sols = []
+    sols = []; bcs = []
     for l in f:
-        unparsedSols = l[(l.index(':')+4):-2] # remove all brackets, parentheses, etc.
+        bcraw = l[(l.index('(')+1):(l.index(')'))]
+        bcraw = bcraw.split(',')
+        bc = []
+        for ele in bcraw:
+            ele.strip()
+            bc.append(float(ele))
+
+        bcs.append(bc)
+
+        unparsedSols = l[(l.index(':')+4):-2] # remove all brackets etc.
+        # print (unparsedSols)
+        bcsol = []
         try:
             while True:
-                i = unparsedSols.index('),') # while there are more solutions
+                i = unparsedSols.index(')') # while there are more solutions
                 unparsedSol = unparsedSols[:i]
-                unparsedSols = unparsedSols[(unparsedSols.index('(')+1):]
 
                 solNums = unparsedSol.split(',')
                 sol = []
@@ -22,13 +32,13 @@ def readSolutions(fname):
                     n.strip()
                     sol.append(float(n))
 
-                sols.append(sol)
+                bcsol.append(sol)
+                unparsedSols = unparsedSols[(unparsedSols.index('(')+1):]
 
         except:
-            continue
+            sols.append(bcsol)
 
-    return sols
-
+    return sols, bcs
 
 def detectSimilar(sol, dim, template):
     assert len(sol) == len(template)
