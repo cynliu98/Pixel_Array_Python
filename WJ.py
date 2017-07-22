@@ -171,7 +171,7 @@ def steadyStateTest(orderedvars,params,dim):
     # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2.0, dim) - orderedvars[1]) < .00001)
 
     assert(len(orderedvars) == 3)
-    h = .05
+    h = .1
     p = float(params[0]); delta = float(params[1])
     valleft = orderedvars[0]; val = orderedvars[1]; valright = orderedvars[2]
     if ((p < 0) or (delta < 0)) and ((val == 0) or (valleft == 0)): # check for negative powers of 0
@@ -181,7 +181,7 @@ def steadyStateTest(orderedvars,params,dim):
 
     source = math.pow(valleft,p)
     diffusion = (math.pow(val,delta)*(valright - val) - math.pow(valleft,delta)*(val - valleft)) * 1/(math.pow(h,2))
-    return (abs(roundtores(source + diffusion, dim)) < .00001)
+    return (abs(roundtores(source + diffusion, dim) - roundtores(0, dim)) < .00001)
     
     # -----------------
 
@@ -366,8 +366,8 @@ def main():
     print (tup3)
     print (tup3.mult(tup2))
 
-    numMats = 20; dimU = 3
-    params = [3,1]
+    numMats = 10; dimU = 3
+    params = [1.5,.5]
     bins = 40
 
     alused = al[8:] + al[0:8]

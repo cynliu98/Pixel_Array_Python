@@ -162,14 +162,14 @@ def removeDupsOrder(vars):
 # params contain other variables as described in makeU
 def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
-    h = 1 # interval size
+    h = .1 # interval size
 
     # heat equation
     return (abs(roundtores((orderedvars[0] - 2*orderedvars[1] + orderedvars[2]), dim) - roundtores(0,dim)) < .00001)
 
     # Fisher equation
     num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    num2 = orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+    num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
     num1 *= -1 * math.pow(h, -2)
     return (abs(roundtores(num1, dim) + roundtores(num2, dim) - roundtores(0,dim)) < .00001)
 
@@ -325,7 +325,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,0,1,bins,params,varnames,dimU)
 
     prods = []
     for i in range(len(Us)-2):
