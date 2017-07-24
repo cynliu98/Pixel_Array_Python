@@ -139,7 +139,7 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if (min(dim) - num > (dim[1] - dim[0])/2 or num - max(dim) > (dim[1]-dim[0])/2):
+    if (min(dim) - num > (dim[1] - dim[0])/2 + .00001 or num - max(dim) > (dim[1]-dim[0])/2):
         # if our number is too far out of range
         return math.inf
     for val in dim:
@@ -156,6 +156,14 @@ def removeDupsOrder(vars):
     seen_add = seen.add
     return [x for x in vars if not (x in seen or seen_add(x))]
 
+# Psuedocode for new steady state testing
+# Isolate the variable you want to return in the equation
+# Is there a value within d/2 (not inclusive lower inclusive upper for
+# upwards rounding, opposite for downs)of the given bin such that
+# the expression involving u_i could equation the expression
+# involving everything else?
+# If yes, return True
+
 # Test for the steady state. Varies for the PDE
 # Used in making the U matrix
 # Comment out irrelevant assert statements
@@ -165,7 +173,7 @@ def steadyStateTest(orderedvars,params,dim):
     h = .1 # interval size
 
     # heat equation
-    return (abs(roundtores((orderedvars[0] - 2*orderedvars[1] + orderedvars[2]), dim) - roundtores(0,dim)) < .00001)
+    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
     num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
@@ -313,7 +321,7 @@ def main():
 
     numMats = 10; dimU = 3
     params = []
-    bins = 40
+    bins = 50
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -325,7 +333,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,1,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,1,5,bins,params,varnames,dimU)
 
     prods = []
     for i in range(len(Us)-2):
@@ -358,7 +366,7 @@ def main():
     for e in prods[-1].getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
-            leftc = i//40; rightc = i%40
+            leftc = i//bins; rightc = i%bins
             left = '%.3f'%(dim1[leftc])
             right = '%.3f'%(dim1[rightc])
             countsol += str(e).count('(')
