@@ -135,15 +135,32 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 
     return Us, dim1
 
-# rounding to resolution - from steady state program
+# rounding to resolution
+# Version that is more consistent in behavior, but that has been put aside as not effective
+# def roundtores(num, dim): #resolution n
+    # dif = 1000000000 #no practical problem would have a dif this big
+    # best = -1
+    # if (min(dim) - num > (dim[1] - dim[0])/2 + .00001 or num - max(dim) > (dim[1]-dim[0])/2):
+        # if our number is too far out of range
+        # return math.inf
+    # for val in dim:
+        # if (abs(num - val) < dif + 0.00001):
+            # dif = abs(num - val)
+            # best = dim.index(val)
+        # else: #shape is down then up. Once we've gone up, done
+            # return dim[best]
+    # return dim[best]
+
+
+# Older version that is more effective
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if (min(dim) - num > (dim[1] - dim[0])/2 + .00001 or num - max(dim) > (dim[1]-dim[0])/2):
+    if ((min(dim) - num) > (dim[1] - dim[0]) or (num - max(dim)) > (dim[1]-dim[0])):
         # if our number is too far out of range
         return math.inf
     for val in dim:
-        if (abs(num - val) < dif + 0.00001):
+        if (abs(num - val) < dif + 0.00001): # round up
             dif = abs(num - val)
             best = dim.index(val)
         else: #shape is down then up. Once we've gone up, done
@@ -173,13 +190,20 @@ def steadyStateTest(orderedvars,params,dim):
     h = .1 # interval size
 
     # heat equation
-    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
+    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
+    return (abs(roundtores((orderedvars[0] - 2 * orderedvars[1] + orderedvars[2]), dim) - roundtores(0, dim)) < .00001)
 
     # Fisher equation
-    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    num1 *= -1 * math.pow(h, -2)
-    return (abs(roundtores(num1, dim) + roundtores(num2, dim) - roundtores(0,dim)) < .00001)
+    # see if the new method works
+    # still somewhat sketchy
+    # can we assume equations with 0 as known steady state will include 0 in bin range
+    dim = [i*math.pow(h,-2) for i in dim]
+    num1 = -orderedvars[0] * math.pow(h, -2)
+    num2 = (orderedvars[2] - 2*orderedvars[1]) * math.pow(h, -2) + 2 * orderedcars[1]*(1 - orderedvars[1])
+    # num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
+    # num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+    # num1 *= -1 * math.pow(h, -2)
+    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
     # Newell-Whitehead-Segel
 ##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
@@ -321,7 +345,7 @@ def main():
 
     numMats = 10; dimU = 3
     params = []
-    bins = 50
+    bins = 60
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -333,7 +357,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,1,5,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
 
     prods = []
     for i in range(len(Us)-2):
@@ -373,6 +397,7 @@ def main():
             print ("Value for bc's (" + str(left) + ", " +
                   str(right) + "): " + str(e))
         i += 1
+        if (i>=1000 and i%1000 == 0): input("Press enter once you're down copying")
 
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
