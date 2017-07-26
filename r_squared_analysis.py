@@ -50,7 +50,7 @@ def rsquared(sol,a,b,m):
     # print ("(a,b): (" + str(a) + ", " + str(b) + ")")
     # print (ideal)
     assert len(ideal) == m
-    avg = (sum(sol))/(m)
+    avg = (sum(sol))/m
     linedis = 0
     variance = 0
     for i in range(m):
@@ -61,7 +61,7 @@ def rsquared(sol,a,b,m):
     return (1 - linedis/variance) #r^2
 
 def main():
-    sols, bcs = readSolutions('Heat_equation_results.txt')
+    sols, bcs = readSolutions('Round_1_Testing.txt')
     # print (sols)
 
     # return
@@ -77,8 +77,8 @@ def main():
 
     for i in range(len(bcs)):
         for j in range(len(sols[i])):
-            print ("The solution: " + str(sols[i][j]))
-            print ("The boundaries: " + str(bcs[i]))
+            # print ("The solution: " + str(sols[i][j]))
+            # print ("The boundaries: " + str(bcs[i]))
             rsq = rsquared(sols[i][j],bcs[i][0],bcs[i][1],numMats)
             avg += rsq
             numSols += 1

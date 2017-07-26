@@ -1,7 +1,6 @@
 # UROP Summer 2017
 # July 13
-# A file for analyzing many solutions
-# And their discrepancies from another, fixed, solution
+# A file for miscellaneous forms of solution analysis
 
 import math
 
@@ -16,7 +15,9 @@ def readSolutions(fname):
             ele.strip()
             bc.append(float(ele))
 
-        bcs.append(bc)
+        if (bc not in bcs):
+            # print (bc)
+            bcs.append(bc)
 
         unparsedSols = l[(l.index(':')+4):-2] # remove all brackets etc.
         # print (unparsedSols)
@@ -40,6 +41,8 @@ def readSolutions(fname):
 
     return sols, bcs
 
+# Detect whether there are solutions indistinguishable
+# from another, fixed solution
 def detectSimilar(sol, dim, template):
     assert len(sol) == len(template)
     dif = dim[1] - dim[0]
@@ -55,7 +58,32 @@ def detectSimilar(sol, dim, template):
 
     return False
 
+# Intersection of 2D arrays
+def intersect(arr1, arr2):
+    tortn = []
+    for a in arr1:
+        if a in arr2:
+            tortn.append(a)
+
+    return tortn
+
+# Returns all solutions that are shared among
+# Two sets of solutions with the same bins
+# Assume solutions have been read
+def returnOverlap(sols1, bcs1, sols2, bcs2):
+    assert (len(sols1) == len(bcs1)) # solution is 2D array, each element with solutions corresponds to a boundary
+    bcs = intersect(bcs1, bcs2)
+
+    overlaps = []
+    for i in range(len(bcs)):
+        bc = bcs[i]
+        ind1 = bcs1.index(bc); ind2 = bcs2.index(bc)
+        overlaps.append(intersect(sols1[ind1], sols2[ind2]))
+
+    return overlaps, bcs
+
 def main():
+    '''  # detecting whether solutions were similar to 0
     stuff = readSolutions('solutions_negative_bins.txt')
     template = [0]*20
     dim = [-1.0 + i*.05 for i in range(41)]
@@ -64,7 +92,20 @@ def main():
             print ("We found a similar solution")
             print (s)
             return
+    '''
 
-    print ("We found no similar solutions")
+    sols1, bcs1 = readSolutions('Round_1_Testing.txt')
+    sols2, bcs2 = readSolutions('Round_1_Testing_Down.txt')
+    overlaps, bcs = returnOverlap(sols1, bcs1, sols2, bcs2)
+    numfulfilled = 0
+    for i in range(len(bcs1)):
+        print ("Value for bc's (" + str(bcs[i][0]) + ", " + str(bcs[i][1]) + "): "
+               + str(overlaps[i]))
+        if (len(overlaps[i])):
+            numfulfilled += 1
+
+    print ("The number of fulfilled boundary conditions was: " + str(numfulfilled))
+
+    # print ("We found no similar solutions")
 
 main()

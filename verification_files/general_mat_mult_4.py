@@ -156,14 +156,14 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if ((min(dim) - num) > (dim[1] - dim[0]) or (num - max(dim)) > (dim[1]-dim[0])):
+    if ((min(dim) - num) > (dim[1] - dim[0])/2 or (num - max(dim)) > (dim[1]-dim[0])/2 + .00001):
         # if our number is too far out of range
         return math.inf
     for val in dim:
-        if (abs(num - val) < dif + 0.00001): # round up
+        if (abs(num - val) < dif - 0.00001): # round up
             dif = abs(num - val)
             best = dim.index(val)
-        else: #shape is down then up. Once we've gone up, done
+        else: #dif gets lower and then higher. Once we've gone up, done
             return dim[best]
     return dim[best]
 
@@ -191,7 +191,7 @@ def steadyStateTest(orderedvars,params,dim):
 
     # heat equation
     # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
-    return (abs(roundtores((orderedvars[0] - 2 * orderedvars[1] + orderedvars[2]), dim) - roundtores(0, dim)) < .00001)
+    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
     # see if the new method works
@@ -345,7 +345,7 @@ def main():
 
     numMats = 10; dimU = 3
     params = []
-    bins = 60
+    bins = 40
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -359,20 +359,20 @@ def main():
 
     Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
 
-    prods = []
+    prod = [];
     for i in range(len(Us)-2):
-        if prods: # if not empty
+        if prod: # if not empty
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prods.append(matMult(prods[-1],Us[i+1], allDims))
+            prod = matMult(prod,Us[i+1], allDims)
         else:
-            prods.append(matMult(Us[0],Us[1],['i','k','l']))
+            prod = matMult(Us[0],Us[1],['i','k','l'])
 
         print ("mult " + str(i+1) + " done")
 
-    prods.append(matMult(prods[-1],Us[-1],[varnames[0], varnames[-1]])) # the final multiplication
-    reduceSolutions(prods[-1], dim1, numMats)
+    prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
+    reduceSolutions(prod, dim1, numMats)
 
 ##    U12 = matMult(U1,U2,['i','k','l'])
 ##    print ("mult 1 done")
@@ -387,7 +387,7 @@ def main():
 ##    USol = matMult(U16,U7,['i','q'])
 
     count = 0; i = 0; countsol = 0;
-    for e in prods[-1].getTensor().flatten():
+    for e in prod.getTensor().flatten():
         if e.getSol()[0][0] is not None: # solutions exist
             count += 1
             leftc = i//bins; rightc = i%bins
