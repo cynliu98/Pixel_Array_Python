@@ -57,11 +57,11 @@ def rsquared(sol,a,b,m):
         linedis += (sol[i] - ideal[i])**2
         variance += (sol[i] - avg)**2
 
-    if variance < 0.0001: return 1
+    if variance < 0.001: return 1
     return (1 - linedis/variance) #r^2
 
 def main():
-    sols, bcs = readSolutions('Round_1_Testing.txt')
+    sols, bcs = readSolutions('Round_2_Testing_2.txt')
     # print (sols)
 
     # return

@@ -156,11 +156,11 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 def roundtores(num, dim): #resolution n
     dif = 1000000000 #no practical problem would have a dif this big
     best = -1
-    if ((min(dim) - num) > (dim[1] - dim[0])/2 or (num - max(dim)) > (dim[1]-dim[0])/2 + .00001):
+    if ((min(dim) - num) > (dim[1] - dim[0])/2 or (num - max(dim)) > (dim[1]-dim[0])/2):
         # if our number is too far out of range
         return math.inf
     for val in dim:
-        if (abs(num - val) < dif - 0.00001): # round up
+        if (abs(num - val) < dif + .00001): # arbitrarily choose to round up or down
             dif = abs(num - val)
             best = dim.index(val)
         else: #dif gets lower and then higher. Once we've gone up, done
@@ -180,6 +180,8 @@ def removeDupsOrder(vars):
 # the expression involving u_i could equation the expression
 # involving everything else?
 # If yes, return True
+# Note that this is the traditional pixel array method. However, it can become inefficient.
+# Emailed David 7/26/17
 
 # Test for the steady state. Varies for the PDE
 # Used in making the U matrix
@@ -345,7 +347,7 @@ def main():
 
     numMats = 10; dimU = 3
     params = []
-    bins = 40
+    bins = 50
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
