@@ -174,20 +174,35 @@ def removeDupsOrder(vars):
     return [x for x in vars if not (x in seen or seen_add(x))]
 
 # Psuedocode for new steady state testing
-# Isolate the variable you want to return in the equation
-# Is there a value within d/2 (not inclusive lower inclusive upper for
-# upwards rounding, opposite for downs)of the given bin such that
-# the expression involving u_i could equation the expression
-# involving everything else?
-# If yes, return True
-# Note that this is the traditional pixel array method. However, it can become inefficient.
-# Emailed David 7/26/17
+# The bin values passed are the centers
+# 1. Calculate the value of the discrete steady state expression, v
+# L_inf distance is d/2, d is size of bin. Distance in this space is
+# maximum distance in a single coordinate
+# 2. Calculate maximum "distance" between possible expression values, x
+#   a. coefficient dot product heat equation: (1, -2, 1) dot (1, -2, 1)*c where c normalizes the vector to have modulus d/2
+#   b. The discrete heat equation is literally a plane; can determine definitively if plane intersects pixel (check signs)
+#   c. For more complicated case take gradient of steady state condition
+# 3. If x > v assume that the steady state condition can be fulfilled in the range
 
-# Test for the steady state. Varies for the PDE
+# Discrete steady state tester
 # Used in making the U matrix
-# Comment out irrelevant assert statements
-# params contain other variables as described in makeU
 def steadyStateTest(orderedvars,params,dim):
+    dif = (dim[1] - dim[0])/2
+    h = .1
+
+    # heat equation
+    # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
+    ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
+    vs = []
+    #for i in range(8):
+        # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
+    for i in range(4):
+        vs.append(uleft+math.pow(-1,i//2)*dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
+
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
+
+# Old test for the steady state. Varies for the PDE
+''' def steadyStateTest(orderedvars,params,dim):
     assert(len(orderedvars) == 3)
     h = .1 # interval size
 
@@ -196,15 +211,10 @@ def steadyStateTest(orderedvars,params,dim):
     return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
 
     # Fisher equation
-    # see if the new method works
-    # still somewhat sketchy
-    # can we assume equations with 0 as known steady state will include 0 in bin range
     dim = [i*math.pow(h,-2) for i in dim]
-    num1 = -orderedvars[0] * math.pow(h, -2)
-    num2 = (orderedvars[2] - 2*orderedvars[1]) * math.pow(h, -2) + 2 * orderedcars[1]*(1 - orderedvars[1])
-    # num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    # num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    # num1 *= -1 * math.pow(h, -2)
+    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
+    num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
+    num1 *= -1 * math.pow(h, -2)
     return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
 
     # Newell-Whitehead-Segel
@@ -217,7 +227,7 @@ def steadyStateTest(orderedvars,params,dim):
 ##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
 ##    num1 *= 1 * math.pow(h, -2)
 ##    num2 = orderedvars[1]*(1 - orderedvars[1])*(orderedvars[1])
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
+##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001) '''
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -345,9 +355,9 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 10; dimU = 3
+    numMats = 7; dimU = 3
     params = []
-    bins = 50
+    bins = 40
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -359,7 +369,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,5,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,0,2,bins,params,varnames,dimU)
 
     prod = [];
     for i in range(len(Us)-2):

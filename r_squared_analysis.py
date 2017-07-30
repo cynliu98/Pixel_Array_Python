@@ -61,7 +61,7 @@ def rsquared(sol,a,b,m):
     return (1 - linedis/variance) #r^2
 
 def main():
-    sols, bcs = readSolutions('Round_2_Testing_2.txt')
+    sols, bcs = readSolutions('Round_3_Testing_3.txt')
     # print (sols)
 
     # return
