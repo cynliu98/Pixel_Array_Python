@@ -114,9 +114,8 @@ def makeU(a,b,n,params):
         U.append(row)
     return U, dim
 
-# If all your U's have the same range and dimension
+# If all U's have the same range and dimension
 # (In other words, without the labels, all the U's are identical)
-# This method resolves some of the hardcoding issues
 # numMats: number of matrices
 # a, b, n, params as defined in makeU, although params contains all U's
 # varNames: list of all variable names in all the U's
@@ -134,22 +133,6 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
         Us.append(labeledTensor(templateTensor, varnames[i:(i+dimU)], [n]*dimU))
 
     return Us, dim1
-
-# rounding to resolution
-# Version that is more consistent in behavior, but that has been put aside as not effective
-# def roundtores(num, dim): #resolution n
-    # dif = 1000000000 #no practical problem would have a dif this big
-    # best = -1
-    # if (min(dim) - num > (dim[1] - dim[0])/2 + .00001 or num - max(dim) > (dim[1]-dim[0])/2):
-        # if our number is too far out of range
-        # return math.inf
-    # for val in dim:
-        # if (abs(num - val) < dif + 0.00001):
-            # dif = abs(num - val)
-            # best = dim.index(val)
-        # else: #shape is down then up. Once we've gone up, done
-            # return dim[best]
-    # return dim[best]
 
 
 # Older version that is more effective
@@ -187,7 +170,7 @@ def removeDupsOrder(vars):
 # Discrete steady state tester
 # Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
-    dif = (dim[1] - dim[0])/2
+    dif = (dim[1] - dim[0])/2 # L_inf norm
     h = .1
 
     # heat equation
@@ -196,10 +179,32 @@ def steadyStateTest(orderedvars,params,dim):
     vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
-    for i in range(4):
-        vs.append(uleft+math.pow(-1,i//2)*dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
+    if ui == max(dim) and uleft == max(dim):
+        for i in range(8):
+            vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
+    elif ui != max(dim) and uleft == max(dim):
+        for i in range(4):
+            vs.append(uleft+math.pow(-1,i//2)*dif + uright + math.pow(-1, i) * dif - 2 * (ui-dif))
+    elif ui == max(dim) and uleft != max(dim):
+        for i in range(4):
+            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui+math.pow(-1,i//2)*dif))
+    else:
+        for i in range(2):
+            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
 
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
+
+    # Fisher equation
+    v = (uleft - 2*ui + uright)*math.pow(h,-2) + ui*(1-ui) # value at the center of subcube
+    grad = [math.pow(h,-2), -2*math.pow(h,-2) - 2*ui + 1, math.pow(h,-2)] # gradient
+
+    mag = 0 # magnitude
+    for i in grad:
+        mag += i**2
+    mag = math.pow(mag,.5)
+    maxchange = mag * dif # the dot of the gradient with itself, divided by mag and multiplied by dif
+
+    return (v <= maxchange)
 
 # Old test for the steady state. Varies for the PDE
 ''' def steadyStateTest(orderedvars,params,dim):
@@ -357,7 +362,7 @@ def main():
 
     numMats = 7; dimU = 3
     params = []
-    bins = 40
+    bins = 50
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
