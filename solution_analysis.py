@@ -82,6 +82,16 @@ def returnOverlap(sols1, bcs1, sols2, bcs2):
 
     return overlaps, bcs
 
+# "L2 norm" calculator
+# Adjusted for the nature of PA
+def L2(sol,a,b,m):
+    ideal = [((m+1-i)*a+i*b)/(m+1) for i in range (1,m+1,1)]
+    L2 = 0
+    for i in range(len(sol)):
+        L2 += (sol[i] - ideal[i])**2
+
+    return math.pow(L2,.5)
+
 def main():
     '''  # detecting whether solutions were similar to 0
     stuff = readSolutions('solutions_negative_bins.txt')
@@ -94,18 +104,36 @@ def main():
             return
     '''
 
+
+    ''' # do both types of rounding, return overlapping (shared) solutions
     sols1, bcs1 = readSolutions('Round_1_Testing.txt')
     sols2, bcs2 = readSolutions('Round_1_Testing_Down.txt')
     overlaps, bcs = returnOverlap(sols1, bcs1, sols2, bcs2)
     numfulfilled = 0
     for i in range(len(bcs1)):
-        print ("Value for bc's (" + str(bcs[i][0]) + ", " + str(bcs[i][1]) + "): "
+        print ("Value for bc's (" + str(bcs[i][0]) + ", " + str(bcs[i][1]) + "): ")
                + str(overlaps[i]))
         if (len(overlaps[i])):
             numfulfilled += 1
 
     print ("The number of fulfilled boundary conditions was: " + str(numfulfilled))
+    '''
 
-    # print ("We found no similar solutions")
+    worstL = [-1,-1,-1] # the worst 3 L2 values
+    worstsols = [[],[],[]] # the worst 3 solutions
+    sols, bcs = readSolutions('convergence_data_1.txt')
+    for i in range(len(bcs)):
+        for j in range(len(sols[i])):
+            val = L2(sols[i][j],bcs[i][0],bcs[i][1],9)
+            if val > worstL[2]:
+                worstL.append(val); worstsols.append(sols[i][j])
+                worstL.sort(reverse=True); worstsols.sort(reverse=True)
+                worstL = worstL[0:3]; worstsols = worstsols[0:3]
+
+    print ("The worst 3 L2 norms were: " + str(worstL))
+    print ("The worst 3 solutions corresponding to those norms were: ")
+    for sol in worstsols:
+        print (sol)
+
 
 main()

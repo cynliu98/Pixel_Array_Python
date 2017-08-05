@@ -179,13 +179,13 @@ def steadyStateTest(orderedvars,params,dim):
     vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
-    if ui == max(dim) and uleft == max(dim):
+    if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
         for i in range(8):
             vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
-    elif ui != max(dim) and uleft == max(dim):
+    elif abs(uleft - max(dim)) <= .0001:
         for i in range(4):
             vs.append(uleft+math.pow(-1,i//2)*dif + uright + math.pow(-1, i) * dif - 2 * (ui-dif))
-    elif ui == max(dim) and uleft != max(dim):
+    elif abs(ui - max(dim)) <= .0001:
         for i in range(4):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui+math.pow(-1,i//2)*dif))
     else:
@@ -360,9 +360,9 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 7; dimU = 3
+    numMats = 9; dimU = 3
     params = []
-    bins = 50
+    bins = 11
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
