@@ -156,27 +156,17 @@ def removeDupsOrder(vars):
     seen_add = seen.add
     return [x for x in vars if not (x in seen or seen_add(x))]
 
-# Psuedocode for new steady state testing
-# The bin values passed are the centers
-# 1. Calculate the value of the discrete steady state expression, v
-# L_inf distance is d/2, d is size of bin. Distance in this space is
-# maximum distance in a single coordinate
-# 2. Calculate maximum "distance" between possible expression values, x
-#   a. coefficient dot product heat equation: (1, -2, 1) dot (1, -2, 1)*c where c normalizes the vector to have modulus d/2
-#   b. The discrete heat equation is literally a plane; can determine definitively if plane intersects pixel (check signs)
-#   c. For more complicated case take gradient of steady state condition
-# 3. If x > v assume that the steady state condition can be fulfilled in the range
-
 # Discrete steady state tester
 # Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
     dif = (dim[1] - dim[0])/2 # L_inf norm
-    h = .1
+    h = 3
+    factor = math.pow(h,-2)
 
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    vs = []
+    '''vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
     if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
@@ -192,47 +182,25 @@ def steadyStateTest(orderedvars,params,dim):
         for i in range(2):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
 
-    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
     # Fisher equation
-    v = (uleft - 2*ui + uright)*math.pow(h,-2) + ui*(1-ui) # value at the center of subcube
-    grad = [math.pow(h,-2), -2*math.pow(h,-2) - 2*ui + 1, math.pow(h,-2)] # gradient
+    v = (uleft - 2*ui + uright)*factor + ui*(1-ui) # value at the center of subcube
+    grad = [factor, -2*factor - 2*ui + 1, factor] # gradient
 
     mag = 0 # magnitude
     for i in grad:
-        mag += i**2
+        mag += math.pow(i,2)
     mag = math.pow(mag,.5)
-    maxchange = mag * dif # the dot of the gradient with itself, divided by mag and multiplied by dif
+    maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
+    return (abs(v) < maxchange)
 
-    return (v <= maxchange)
+    # Old Fisher checker
+    num1 = 2 * ui - uleft - uright  # 2u_i - u_{i+1} - u_{i-1}
+    num2 = ui * (1 - ui)  # u_i(1-u_i)
+    num1 *= -1 * factor
+    return (abs(roundtores(num1, dim) + roundtores(num2, dim) - roundtores(0, dim)) < .00001)
 
-# Old test for the steady state. Varies for the PDE
-''' def steadyStateTest(orderedvars,params,dim):
-    assert(len(orderedvars) == 3)
-    h = .1 # interval size
-
-    # heat equation
-    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
-    return (abs(roundtores((orderedvars[0] + orderedvars[2])/2, dim) - orderedvars[1]) < .00001)
-
-    # Fisher equation
-    dim = [i*math.pow(h,-2) for i in dim]
-    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2] #2u_i - u_{i+1} - u_{i-1}
-    num2 = 2 * orderedvars[1] * (1 - orderedvars[1]) #u_i(1-u_i)
-    num1 *= -1 * math.pow(h, -2)
-    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
-
-    # Newell-Whitehead-Segel
-##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
-##    num1 *= 5 * math.pow(h, -2)
-##    num2 = orderedvars[1] * (1 - math.pow(orderedvars[1],2))
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001)
-
-    # Zeldovich–Frank–Kamenetsky
-##    num1 = 2*orderedvars[1] - orderedvars[0] - orderedvars[2]
-##    num1 *= 1 * math.pow(h, -2)
-##    num2 = orderedvars[1]*(1 - orderedvars[1])*(orderedvars[1])
-##    return (abs(roundtores(num1, dim) - roundtores(num2, dim)) < .00001) '''
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -360,9 +328,9 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 9; dimU = 3
+    numMats = 8; dimU = 3
     params = []
-    bins = 11
+    bins = 50
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1

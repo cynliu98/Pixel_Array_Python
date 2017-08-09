@@ -164,26 +164,53 @@ def removeDupsOrder(vars):
     seen_add = seen.add
     return [x for x in vars if not (x in seen or seen_add(x))]
 
-# Test for the steady state of the Wilhelmsson-Jancel equation
+# Discrete steady state tester
+# Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
+    dif = (dim[1] - dim[0])/2 # L_inf norm
+    h = 3
+    factor = math.pow(h,-2)
+
     # heat equation
-    # the basic test
-    # return (abs(roundtores((orderedvars[0] + orderedvars[2])/2.0, dim) - orderedvars[1]) < .00001)
+    # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
+    ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
+    '''vs = []
+    #for i in range(8):
+        # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
+    if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
+        for i in range(8):
+            vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
+    elif abs(uleft - max(dim)) <= .0001:
+        for i in range(4):
+            vs.append(uleft+math.pow(-1,i//2)*dif + uright + math.pow(-1, i) * dif - 2 * (ui-dif))
+    elif abs(ui - max(dim)) <= .0001:
+        for i in range(4):
+            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui+math.pow(-1,i//2)*dif))
+    else:
+        for i in range(2):
+            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
 
-    assert(len(orderedvars) == 3)
-    h = .1
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
+
     p = float(params[0]); delta = float(params[1])
-    valleft = orderedvars[0]; val = orderedvars[1]; valright = orderedvars[2]
-    if ((p < 0) or (delta < 0)) and ((val == 0) or (valleft == 0)): # check for negative powers of 0
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
         return False
-    if (abs(p - round(p)) > .0001 and valleft < 0) or (abs(delta - round(delta)) > .0001 and (val < 0 or valleft < 0)):
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
         return False
 
-    source = math.pow(valleft,p)
-    diffusion = (math.pow(val,delta)*(valright - val) - math.pow(valleft,delta)*(val - valleft)) * 1/(math.pow(h,2))
-    return (abs(roundtores(source + diffusion, dim) - roundtores(0, dim)) < .00001)
-    
-    # -----------------
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    v = source + diffusion
+    grad = [factor*math.pow(ui,delta),
+            factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
+            factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
+
+    mag = 0 # magnitude
+    for i in grad:
+        mag += math.pow(i,2)
+    mag = math.pow(mag,.5)
+    maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
+    return (abs(v) < maxchange)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -402,20 +429,22 @@ def main():
     # print ("mult 5 done")
     # USol = matMult(U16,Us[6],['i','q'])
 
-    prods = []
+    prod = [];
     for i in range(len(Us)-2):
-        if prods: # if not empty
+        if prod: # if not empty
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prods.append(matMult(prods[-1],Us[i+1], allDims))
+            prod = matMult(prod,Us[i+1], allDims)
         else:
-            prods.append(matMult(Us[0],Us[1],['i','k','l']))
+            prod = matMult(Us[0],Us[1],['i','k','l'])
 
         print ("mult " + str(i+1) + " done")
 
-    prods.append(matMult(prods[-1],Us[-1],[varnames[0], varnames[-1]])) # the final multiplication
-    reduceSolutions(prods[-1], dim1, numMats)
+    if prod: # not empty
+        prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
+    else: prod = matMult(Us[0],Us[1],['i','k','l'])
+    reduceSolutions(prod, dim1, numMats)
 
     # printall(USol, dim1)
     dimSol = 2
