@@ -68,6 +68,16 @@ class solutionTuple(object):
             # return solutionTuple(newself[0]) # don't want to modify the tensor
         return solutionTuple()
 
+    def simpleMult(self, tup2): # rightwards multiply - only first element of Cartesian product
+        if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
+            newself = []
+            bothlists = [self.sol, tup2.getSol()]
+            for e in itertools.product(*bothlists):
+                e = list(e)
+                e = [item for sublist in e for item in sublist]
+                newself.append(e)
+            return solutionTuple(newself[0]) # don't want to modify the tensor
+
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
         # assert (len(list(mat.shape)) == len(dims)) # the dims can actually match
@@ -95,8 +105,6 @@ class labeledTensor(object):
         return self.resolutions[self.dims.index(dim)]
 
 # n possible solution values y for each variable
-# NOTE: n IS NOT THE NUMBER OF VARIABLES
-# from steady state program
 # params contains other useful variables, like the current spatial coordinates
 # val, val1, val2 etc. contain potential steady state solution values
 def makeU(a,b,n,params):
@@ -110,6 +118,27 @@ def makeU(a,b,n,params):
                 if steadyStateTest([val1,val,val2],params,dim): # not hardcoded anymore!
                     element.append(solutionTuple(val))
                 else: element.append(solutionTuple())
+            # assert (len(element) == 1)
+            row.append(element)
+        U.append(row)
+    return U, dim
+
+# Make U, but each set of boundary conditions is only allowed
+# 1 solution
+def makeSmallU(a,b,n,params):
+    U = []
+    filled = [] # filled boundaries
+    dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
+    for val1 in dim:
+        row = [] #new row for variable
+        for val in dim:
+            element = []
+            for val2 in dim:
+                if steadyStateTest([val1,val,val2],params,dim) and ([val1,val2] not in filled): # not hardcoded anymore!
+                    element.append(solutionTuple(val))
+                    filled.append([val1,val2])
+                else: element.append(solutionTuple())
+            # assert (len(element) == 1)
             row.append(element)
         U.append(row)
     return U, dim
@@ -137,18 +166,10 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 
 # Older version that is more effective
 def roundtores(num, dim): #resolution n
-    dif = 1000000000 #no practical problem would have a dif this big
-    best = -1
-    if ((min(dim) - num) > (dim[1] - dim[0])/2 or (num - max(dim)) > (dim[1]-dim[0])/2):
-        # if our number is too far out of range
-        return math.inf
-    for val in dim:
-        if (abs(num - val) < dif + .00001): # arbitrarily choose to round up or down
-            dif = abs(num - val)
-            best = dim.index(val)
-        else: #dif gets lower and then higher. Once we've gone up, done
-            return dim[best]
-    return dim[best]
+    c = dim[0]; m = dim[1] - dim[0] # b_i = m*i + c
+    i = (num - c)/m # solve for i
+    roundi = round(i+.00001) # round i to the nearest integer, round up
+    return m*roundi+c
 
 # Thank you Stack Overflow
 def removeDupsOrder(vars):
@@ -160,13 +181,13 @@ def removeDupsOrder(vars):
 # Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
     dif = (dim[1] - dim[0])/2 # L_inf norm
-    h = 3
+    h = .5
     factor = math.pow(h,-2)
 
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    '''vs = []
+    vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
     if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
@@ -184,16 +205,16 @@ def steadyStateTest(orderedvars,params,dim):
 
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
-    # Fisher equation
-    v = (uleft - 2*ui + uright)*factor + ui*(1-ui) # value at the center of subcube
-    grad = [factor, -2*factor - 2*ui + 1, factor] # gradient
+    # Fisher equation - new, nonfunctional, version
+    '''v = (uleft - 2*ui + uright) + factor*ui*(1-ui) # value at the center of subcube
+    grad = [1, -2 + (-2*ui + 1)*factor, 1] # gradient
 
     mag = 0 # magnitude
     for i in grad:
         mag += math.pow(i,2)
     mag = math.pow(mag,.5)
     maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
-    return (abs(v) < maxchange)
+    return (abs(v) < maxchange)'''
 
     # Old Fisher checker
     num1 = 2 * ui - uleft - uright  # 2u_i - u_{i+1} - u_{i-1}
@@ -204,7 +225,7 @@ def steadyStateTest(orderedvars,params,dim):
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
-def matMult(A, B, exposed):
+def matMult(A, B, exposed, simple=False):
     # Preparation
     matA = A.tensor; matB = B.tensor # what we're actually multiplying
     avars = A.dims; bvars = B.dims;
@@ -274,7 +295,9 @@ def matMult(A, B, exposed):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            prod = subela.mult(subelb) # changes subela
+            if simple:
+                prod = subela.simpleMult(subelb)
+            else: prod = subela.mult(subelb) # changes subela
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
                 el.add(prod)
 
@@ -328,9 +351,10 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 8; dimU = 3
+    numMats = 7; dimU = 3
     params = []
     bins = 50
+    simple = False # do we want multiplication that butchers terms or no?
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -350,13 +374,14 @@ def main():
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prod = matMult(prod,Us[i+1], allDims)
+            prod = matMult(prod,Us[i+1], allDims, simple)
         else:
-            prod = matMult(Us[0],Us[1],['i','k','l'])
+            prod = matMult(Us[0],Us[1],['i','k','l'], simple)
 
         print ("mult " + str(i+1) + " done")
 
-    prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
+    if prod: prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
+    else: prod = matMult(Us[0], Us[1], ['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
 
 ##    U12 = matMult(U1,U2,['i','k','l'])
@@ -382,7 +407,7 @@ def main():
             print ("Value for bc's (" + str(left) + ", " +
                   str(right) + "): " + str(e))
         i += 1
-        if (i>=1000 and i%1000 == 0): input("Press enter once you're down copying")
+        # if (i>=1000 and i%1000 == 0): input("Press enter once you're down copying")
 
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")

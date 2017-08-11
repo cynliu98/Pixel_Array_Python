@@ -74,6 +74,17 @@ class solutionTuple(object):
             # return solutionTuple(newself[0]) # don't want to modify the tensor
         return solutionTuple()
 
+    def simpleMult(self, tup2): # rightwards multiply - only first element of Cartesian product
+        if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
+            newself = []
+            bothlists = [self.sol, tup2.getSol()]
+            for e in itertools.product(*bothlists):
+                e = list(e)
+                e = [item for sublist in e for item in sublist]
+                newself.append(e)
+            return solutionTuple(newself[0]) # don't want to modify the tensor
+        return solutionTuple()
+
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
         # assert (len(list(mat.shape)) == len(dims)) # the dims can actually match
@@ -214,7 +225,7 @@ def steadyStateTest(orderedvars,params,dim):
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
-def matMult(A, B, exposed):
+def matMult(A, B, exposed, simple):
     # Preparation
     matA = A.tensor; matB = B.tensor # what we're actually multiplying
     avars = A.dims; bvars = B.dims;
@@ -283,7 +294,9 @@ def matMult(A, B, exposed):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            prod = subela.mult(subelb)
+            if simple:
+                prod = subela.simpleMult(subelb)
+            else: prod = subela.mult(subelb)
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
                 el.add(prod)
 
