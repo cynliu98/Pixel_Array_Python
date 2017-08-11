@@ -156,18 +156,10 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 
 # rounding to resolution - from steady state program
 def roundtores(num, dim): #resolution n
-    dif = 1000000000 #no practical problem would have a dif this big
-    best = -1
-    if ((min(dim) - num) > (dim[1] - dim[0])/2 or (num - max(dim)) > (dim[1]-dim[0])/2):
-        # if our number is too far out of range
-        return math.inf
-    for val in dim:
-        if (abs(num - val) < dif + 0.00001): # round up
-            dif = abs(num - val)
-            best = dim.index(val)
-        else: #shape is down then up. Once we've gone up, done
-            return dim[best]
-    return dim[best]
+    c = dim[0]; m = dim[1] - dim[0] # b_i = m*i + c
+    i = (num - c)/m # solve for i
+    roundi = round(i+.00001) # round i to the nearest integer, round up
+    return m*roundi+c
 
 # Thank you Stack Overflow
 def removeDupsOrder(vars):
@@ -179,7 +171,7 @@ def removeDupsOrder(vars):
 # Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
     dif = (dim[1] - dim[0])/2 # L_inf norm
-    h = 3
+    h = .05
     factor = math.pow(h,-2)
 
     # heat equation
@@ -203,7 +195,8 @@ def steadyStateTest(orderedvars,params,dim):
 
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
-    p = float(params[0]); delta = float(params[1])
+    # Non-functional W-J code, although I think the math is right.
+    '''p = float(params[0]); delta = float(params[1])
     if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
         return False
     if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
@@ -212,16 +205,31 @@ def steadyStateTest(orderedvars,params,dim):
     source = math.pow(uleft,p)
     diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
     v = source + diffusion
-    grad = [factor*math.pow(ui,delta),
+    try:
+        grad = [factor*math.pow(ui,delta),
             factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
             factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
+    except:
+        return False
 
     mag = 0 # magnitude
     for i in grad:
         mag += math.pow(i,2)
     mag = math.pow(mag,.5)
     maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
-    return (abs(v) < maxchange)
+    return (abs(v) < maxchange)'''
+
+    # Functional W-J code
+    assert(len(orderedvars) == 3)
+    p = float(params[0]); delta = float(params[1])
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
+        return False
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
+        return False
+
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    return (abs(roundtores(source + diffusion, dim)) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -397,18 +405,10 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
-    # solutionTuple testing - remove
-    tup1 = solutionTuple([1,2,3,4,5])
-    tup2 = solutionTuple([.5])
-    tup3 = tup1.mult(tup2)
-    print (tup3)
-    tup3.add(tup2)
-    print (tup3)
-    print (tup3.mult(tup2))
-
-    numMats = 10; dimU = 3
-    params = [1.5,.5]
+    numMats = 7; dimU = 3
+    params = [2,1]
     bins = 40
+    simple = False
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -448,20 +448,20 @@ def main():
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prod = matMult(prod,Us[i+1], allDims)
+            prod = matMult(prod,Us[i+1], allDims, simple)
         else:
-            prod = matMult(Us[0],Us[1],['i','k','l'])
+            prod = matMult(Us[0],Us[1],['i','k','l'], simple)
 
         print ("mult " + str(i+1) + " done")
 
     if prod: # not empty
-        prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
-    else: prod = matMult(Us[0],Us[1],['i','k','l'])
+        prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
+    else: prod = matMult(Us[0],Us[1],['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
 
     # printall(USol, dim1)
     dimSol = 2
-    printSols(prods[-1], dim1, bins, dimSol)
+    printSols(prod, dim1, bins, dimSol)
 
 start_time = time.time()
 main()
