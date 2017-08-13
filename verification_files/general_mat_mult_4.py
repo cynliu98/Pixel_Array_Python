@@ -181,13 +181,13 @@ def removeDupsOrder(vars):
 # Used in making the U matrix
 def steadyStateTest(orderedvars,params,dim):
     dif = (dim[1] - dim[0])/2 # L_inf norm
-    h = .5
+    h = .25
     factor = math.pow(h,-2)
 
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    vs = []
+    '''vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
     if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
@@ -217,9 +217,9 @@ def steadyStateTest(orderedvars,params,dim):
     return (abs(v) < maxchange)'''
 
     # Old Fisher checker
-    num1 = 2 * ui - uleft - uright  # 2u_i - u_{i+1} - u_{i-1}
-    num2 = ui * (1 - ui)  # u_i(1-u_i)
-    num1 *= -1 * factor
+    num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
+    num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
+    num1 *= factor
     return (abs(roundtores(num1, dim) + roundtores(num2, dim) - roundtores(0, dim)) < .00001)
 
 
@@ -351,9 +351,9 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 7; dimU = 3
+    numMats = 16; dimU = 3
     params = []
-    bins = 50
+    bins = 40
     simple = False # do we want multiplication that butchers terms or no?
 
     alused = al[8:] + al[0:8]
