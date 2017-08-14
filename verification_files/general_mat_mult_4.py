@@ -151,7 +151,7 @@ def makeSmallU(a,b,n,params):
 # dimU: the dimension of each U
 # paramlen is the length of params for each U
 # difparams is a boolean indicating whether each U's params are different or not
-def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
+def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False):
     assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
     Us = []
     if not(difparams):
@@ -163,6 +163,17 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 
     return Us, dim1
 
+def makeAllSmallU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False):
+    assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
+    Us = []
+    if not(difparams):
+        templateTensor, dim1 = makeSmallU(a,b,n,params)
+    for i in range(numMats):
+        if difparams:
+            templateTensor, dim1 = makeSmallU(a,b,n,params[i*paramlen,(i+1)*paramlen])
+        Us.append(labeledTensor(templateTensor, varnames[i:(i+dimU)], [n]*dimU))
+
+    return Us, dim1
 
 # Older version that is more effective
 def roundtores(num, dim): #resolution n
@@ -187,7 +198,7 @@ def steadyStateTest(orderedvars,params,dim):
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    '''vs = []
+    vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
     if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
@@ -225,7 +236,7 @@ def steadyStateTest(orderedvars,params,dim):
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
-def matMult(A, B, exposed, simple=False):
+def matMult(A, B, exposed, abridge=False):
     # Preparation
     matA = A.tensor; matB = B.tensor # what we're actually multiplying
     avars = A.dims; bvars = B.dims;
@@ -295,11 +306,13 @@ def matMult(A, B, exposed, simple=False):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            if simple:
-                prod = subela.simpleMult(subelb)
-            else: prod = subela.mult(subelb) # changes subela
+            prod = subela.mult(subelb) # changes subela
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
                 el.add(prod)
+
+            # Only want 1 of the solutions in el
+            if abridge:
+                print ("Hi what's up update me later")
 
         UpSol = Usol
         for n in range(len(bc)-1):
@@ -351,10 +364,9 @@ def reduceSolutions(USol, dim, numMats):
 
 def main():
 
-    numMats = 16; dimU = 3
+    numMats = 8; dimU = 3
     params = []
-    bins = 40
-    simple = False # do we want multiplication that butchers terms or no?
+    bins = 41
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -374,14 +386,14 @@ def main():
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prod = matMult(prod,Us[i+1], allDims, simple)
+            prod = matMult(prod,Us[i+1], allDims)
         else:
-            prod = matMult(Us[0],Us[1],['i','k','l'], simple)
+            prod = matMult(Us[0],Us[1],['i','k','l'])
 
         print ("mult " + str(i+1) + " done")
 
-    if prod: prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
-    else: prod = matMult(Us[0], Us[1], ['i','k','l'], simple)
+    if prod: prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
+    else: prod = matMult(Us[0], Us[1], ['i','k','l'])
     reduceSolutions(prod, dim1, numMats)
 
 ##    U12 = matMult(U1,U2,['i','k','l'])

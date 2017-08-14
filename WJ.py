@@ -9,6 +9,7 @@ import random as rd
 import time
 import math
 from string import ascii_lowercase as al
+import matplotlib as plt
 
 # looks like a set of tuples
 # adds like a list
@@ -401,6 +402,30 @@ def printBCs(USol, dim1, bins):
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
 
+# convert a USol to a 2D boolean numpy array
+def convertToPlot(USol, dim1, bins):
+    rawArray = []; el = []
+    i = 0
+    for e in USol.getTensor().flatten():
+        if (i-1)//bins != i//bins and i != 0: # start new row
+            rawArray.append(el)
+            el = []
+
+        if e.getSol()[0][0] is not None: # solutions exist
+            el.append(1) # True
+        else: # solutions don't exist
+            el.append(0)
+
+        i+=1
+
+    rawArray.append(el) # don't forget the last row
+    assert len(rawArray) == bins
+    assert (len(rawArray[0])) == bins
+    toRtn = np.array(rawArray) # convert to numpy
+
+    return toRtn
+
+
 def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
@@ -462,6 +487,8 @@ def main():
     # printall(USol, dim1)
     dimSol = 2
     printSols(prod, dim1, bins, dimSol)
+    input("Please press enter to continue ")
+    print (convertToPlot(prod,dim1,bins)) # print the corresponding boolean array
 
 start_time = time.time()
 main()
