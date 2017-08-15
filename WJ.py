@@ -9,7 +9,7 @@ import random as rd
 import time
 import math
 from string import ascii_lowercase as al
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 # looks like a set of tuples
 # adds like a list
@@ -488,7 +488,8 @@ def main():
     dimSol = 2
     printSols(prod, dim1, bins, dimSol)
     input("Please press enter to continue ")
-    print (convertToPlot(prod,dim1,bins)) # print the corresponding boolean array
+    pixelArray = convertToPlot(prod,dim1,bins) # print the corresponding boolean array
+    plot = plt.imshow(pixelArray)
 
 start_time = time.time()
 main()
