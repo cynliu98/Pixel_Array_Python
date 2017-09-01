@@ -1,5 +1,5 @@
 # UROP Summer
-# 6/9/17
+# 6/20/17
 # Generalized matrix multiplication
 # Inhomogeneous Testing
 
@@ -9,6 +9,7 @@ import random as rd
 import time
 import math
 from string import ascii_lowercase as al
+import matplotlib.pyplot as plt
 
 # looks like a set of tuples
 # adds like a list
@@ -40,7 +41,13 @@ class solutionTuple(object):
     def getSol(self):
         return self.sol
 
-    def add(self, tup2): # rightwards add
+    def setSol(self,newsol):
+        if type(sol) == list:
+            self.sol = [[i for i in sol]]
+        else:
+            self.sol = [[sol]]
+
+    def add(self, tup2): # rightwards add - set concatenation
         j = 0
         if self.sol[0][0] is None:
             self.sol = [tup2.getSol()[0]]
@@ -77,6 +84,7 @@ class solutionTuple(object):
                 e = [item for sublist in e for item in sublist]
                 newself.append(e)
             return solutionTuple(newself[0]) # don't want to modify the tensor
+        return solutionTuple()
 
 class labeledTensor(object):
     def __init__(self, mat, dims, resos):
@@ -105,8 +113,12 @@ class labeledTensor(object):
         return self.resolutions[self.dims.index(dim)]
 
 # n possible solution values y for each variable
+# NOTE: n IS NOT THE NUMBER OF VARIABLES
+# from steady state program
 # params contains other useful variables, like the current spatial coordinates
 # val, val1, val2 etc. contain potential steady state solution values
+# Because of the nature of the discretized equation, let
+# val = n_j, val1 = n_{j+1}, val2 = n_{j+2}
 def makeU(a,b,n,params):
     U = []
     dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
@@ -118,40 +130,20 @@ def makeU(a,b,n,params):
                 if steadyStateTest([val1,val,val2],params,dim): # not hardcoded anymore!
                     element.append(solutionTuple(val))
                 else: element.append(solutionTuple())
-            # assert (len(element) == 1)
             row.append(element)
         U.append(row)
     return U, dim
 
-# Make U, but each set of boundary conditions is only allowed
-# 1 solution
-def makeSmallU(a,b,n,params):
-    U = []
-    filled = [] # filled boundaries
-    dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
-    for val1 in dim:
-        row = [] #new row for variable
-        for val in dim:
-            element = []
-            for val2 in dim:
-                if steadyStateTest([val1,val,val2],params,dim) and ([val1,val2] not in filled): # not hardcoded anymore!
-                    element.append(solutionTuple(val))
-                    filled.append([val1,val2])
-                else: element.append(solutionTuple())
-            # assert (len(element) == 1)
-            row.append(element)
-        U.append(row)
-    return U, dim
-
-# If all U's have the same range and dimension
+# If all your U's have the same range and dimension
 # (In other words, without the labels, all the U's are identical)
+# This method resolves some of the hardcoding issues
 # numMats: number of matrices
 # a, b, n, params as defined in makeU, although params contains all U's
 # varNames: list of all variable names in all the U's
 # dimU: the dimension of each U
 # paramlen is the length of params for each U
 # difparams is a boolean indicating whether each U's params are different or not
-def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False):
+def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
     assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
     Us = []
     if not(difparams):
@@ -163,19 +155,7 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False):
 
     return Us, dim1
 
-def makeAllSmallU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False):
-    assert (numMats + dimU - 1 == len(varnames)) # we have exactly enough varnames
-    Us = []
-    if not(difparams):
-        templateTensor, dim1 = makeSmallU(a,b,n,params)
-    for i in range(numMats):
-        if difparams:
-            templateTensor, dim1 = makeSmallU(a,b,n,params[i*paramlen,(i+1)*paramlen])
-        Us.append(labeledTensor(templateTensor, varnames[i:(i+dimU)], [n]*dimU))
-
-    return Us, dim1
-
-# Older version that is more effective
+# rounding to resolution - from steady state program
 def roundtores(num, dim): #resolution n
     c = dim[0]; m = dim[1] - dim[0] # b_i = m*i + c
     i = (num - c)/m # solve for i
@@ -198,16 +178,10 @@ def steadyStateTest(orderedvars,params,dim):
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    vs = []
-    '''for i in range(8):
-        vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))'''
-    if abs(ui - max(dim)) <= .0001:
-        for i in range(8):
-            vs.append(uleft+math.pow(-1, i)*dif + uright+math.pow(-1, i//2)*dif - 2*(ui + math.pow(-1,i//4)*dif))
-    else:
-        for i in range(4):
-            vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*ui)
-    '''if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
+    '''vs = []
+    #for i in range(8):
+        # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
+    if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
         for i in range(8):
             vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
     elif abs(uleft - max(dim)) <= .0001:
@@ -218,13 +192,26 @@ def steadyStateTest(orderedvars,params,dim):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui+math.pow(-1,i//2)*dif))
     else:
         for i in range(2):
-            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))'''
+            vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
 
-    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
-    # Fisher equation - new, nonfunctional, version
-    '''v = (uleft - 2*ui + uright) + factor*ui*(1-ui) # value at the center of subcube
-    grad = [1, -2 + (-2*ui + 1)*factor, 1] # gradient
+    # Non-functional W-J code, although I think the math is right.
+    '''p = float(params[0]); delta = float(params[1])
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
+        return False
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
+        return False
+
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    v = source + diffusion
+    try:
+        grad = [factor*math.pow(ui,delta),
+            factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
+            factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
+    except:
+        return False
 
     mag = 0 # magnitude
     for i in grad:
@@ -233,16 +220,21 @@ def steadyStateTest(orderedvars,params,dim):
     maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
     return (abs(v) < maxchange)'''
 
-    # Old Fisher checker
-    num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
-    num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
-    num1 *= factor
-    return (abs(roundtores(num1, dim) + roundtores(num2, dim) - roundtores(0, dim)) < .00001)
+    # Functional W-J code
+    assert(len(orderedvars) == 3)
+    p = float(params[0]); delta = float(params[1])
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
+        return False
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
+        return False
 
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    return (abs(roundtores(source + diffusion, dim)) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
-def matMult(A, B, exposed, abridge=False):
+def matMult(A, B, exposed, simple):
     # Preparation
     matA = A.tensor; matB = B.tensor # what we're actually multiplying
     avars = A.dims; bvars = B.dims;
@@ -275,7 +267,6 @@ def matMult(A, B, exposed, abridge=False):
     Usol = np.empty(shape)
     Usol = Usol.tolist()
 
-    # THIS IS THE CORRECTED
     # for each set of possible boundary conditions taking from A and B:
     for bci in np.ndenumerate(Usol):
         bc = list(list(bci)[0]) #extract tuple of bc indices
@@ -312,13 +303,11 @@ def matMult(A, B, exposed, abridge=False):
             # both subela and subelb should be solution tuples
             # A[indexer values].mult(B)[indexer values]
             # a.add(A[indexer values])
-            prod = subela.mult(subelb) # changes subela
+            if simple:
+                prod = subela.simpleMult(subelb)
+            else: prod = subela.mult(subelb)
             if (not (subela.getSol()[0][0] is None) and not (subelb.getSol()[0][0] is None)):
                 el.add(prod)
-
-            # Only want 1 of the solutions in el
-            if abridge:
-                print ("Hi what's up update me later")
 
         UpSol = Usol
         for n in range(len(bc)-1):
@@ -329,20 +318,17 @@ def matMult(A, B, exposed, abridge=False):
     Usol = np.array(Usol)
     return labeledTensor(Usol, exposed, exresos)
 
-
 # Determining whether two solutions are identical
 # Algorithm: difference between two solutions is less than
 # 1/2 * (number of variables) * (dif)^2 where dif is
 # the difference between two adjacent bins (possible solution values)
 def reduceSolutions(USol, dim, numMats):
     dif = dim[1] - dim[0]
-    maxdev = .5 * (numMats) * math.pow(dif, 2)
+    maxdev = .5 * (numMats) * math.pow(dif,2)
     for e in USol.getTensor().flatten():
         sol = e.getSol()
 
-        uniques = [];
-        i = 0;
-        notuniques = []
+        uniques = []; i = 0; notuniques = []
         for s in sol:
             if (i == 0):
                 uniques.append(s)
@@ -354,25 +340,38 @@ def reduceSolutions(USol, dim, numMats):
                         dev += math.pow(s[j] - uniques[k][j], 2)
 
                     dev *= .5
-                    if (dev <= maxdev):  # not a unique solution
+                    if (dev <= maxdev): # not a unique solution
                         isUnique = False
                         notuniques.append(solutionTuple(s))
                         break
 
                 if isUnique:
                     uniques.append(s)
-
+                             
             i += 1
 
         # remove all not unique solutions
         for rep in notuniques:
             e.delete(rep)
+        
+# print the entire matrix
+# basically useless
+def printall(USol, dim1, bins):
+    i = 0
+    for e in USol.getTensor().flatten():
+        leftc = i//bins; rightc = i%bins
+        left = '%.3f'%(dim1[leftc])
+        right = '%.3f'%(dim1[rightc])
+        print ("Value for bc's (" + str(left) + ", " +
+               str(right) + "): " + str(e))
+        i += 1
 
 # print only all the solutions
 # Assumes 2 dimensional
 def printSols(USol, dim1, bins):
     assert bins > 0
     count = 0; countsol = 0;
+
     for e in USol.getTensor().flatten():
         sols = e.getSol()
         if sols[0][0] is not None: # solutions exist
@@ -392,12 +391,67 @@ def printSols(USol, dim1, bins):
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
+    return boundaries
+
+# print only the boundary conditions with solutions
+# do not care for the number of solutions
+# Assumes 2 dimensional
+# UNDER CONSTRUCTION
+def printBCs(USol, dim1, bins):
+    count = 0; fulfilled = []
+    for e in USol.getTensor().flatten():
+        sols = e.getSol()
+        if sols[0][0] is not None: # solutions exist
+            count += 1
+            boundaries = []
+            for s in sols:
+                if not([s[0], s[-1]] in fulfilled):
+                    boundaries.append([s[0], s[-1]])
+                    fulfilled.append([s[0], s[-1]])
+
+            '''leftc = i//bins; rightc = i%bins
+            left = '%.3f'%(dim1[leftc])
+            right = '%.3f'%(dim1[rightc])'''
+
+    boundaries.sort()
+    print ("Fullfilled boundaries:")
+    for b in boundaries:
+        print (str(b))
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+
+# convert a USol to a 2D boolean numpy array
+def convertToPlot(USol, dim1, bins):
+    rawArray = []; el = []
+    i = 0
+    for e in USol.getTensor().flatten():
+        if (i-1)//bins != i//bins and i != 0: # start new row
+            rawArray.append(el)
+            el = []
+
+        if e.getSol()[0][0] is not None: # solutions exist
+            el.append(1) # True
+        else: # solutions don't exist
+            el.append(0)
+
+        i+=1
+
+    rawArray.append(el) # don't forget the last row
+    assert len(rawArray) == bins
+    assert (len(rawArray[0])) == bins
+    toRtn = np.array(rawArray) # convert to numpy
+
+    return toRtn
+
 
 def main():
+    # Actual testing time
+    # params = [p, delta] fulfilling p = delta + 1
 
-    numMats = 8; dimU = 3
-    params = []
+    numMats = 9; dimU = 3
+    params = [2,1]
     bins = 41
+    simple = False
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -410,6 +464,26 @@ def main():
         i += 1
 
     Us, dim1 = makeAllU(numMats,0,2,bins,params,varnames,dimU)
+    print (str(dim1))
+
+    # debugging the steady state tester
+    # print (steadyStateTest([0,5,.128],[2,1],dim1))
+    # print (steadyStateTest([0,.385,.513],[2,1],dim1))
+    # print (steadyStateTest([0,.769,.128],[2,1],dim1))
+
+    # return
+
+    # U12 = matMult(Us[0],Us[1],['i','k','l'])
+    # print ("mult 1 done")
+    # U123 = matMult(U12,Us[2],['i','l','m'])
+    # print ("mult 2 done")
+    # U14 = matMult(U123,Us[3],['i','m','n'])
+    # print ("mult 3 done")
+    # U15 = matMult(U14,Us[4],['i','n','o'])
+    # print ("mult 4 done")
+    # U16 = matMult(U15,Us[5],['i','o','p'])
+    # print ("mult 5 done")
+    # USol = matMult(U16,Us[6],['i','q'])
 
     prod = [];
     for i in range(len(Us)-2):
@@ -417,29 +491,29 @@ def main():
             rightDims = Us[i+1].getDims()[-2:]
             assert len(rightDims) == 2
             allDims = ['i'] + rightDims
-            prod = matMult(prod,Us[i+1], allDims)
+            prod = matMult(prod,Us[i+1], allDims, simple)
         else:
-            prod = matMult(Us[0],Us[1],['i','k','l'])
+            prod = matMult(Us[0],Us[1],['i','k','l'], simple)
 
         print ("mult " + str(i+1) + " done")
 
-    if prod: prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
-    else: prod = matMult(Us[0], Us[1], ['i','k','l'])
+    if prod: # not empty
+        prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
+    else: prod = matMult(Us[0],Us[1],['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
 
-##    U12 = matMult(U1,U2,['i','k','l'])
-##    print ("mult 1 done")
-##    U123 = matMult(U12,U3,['i','l','m'])
-##    print ("mult 2 done")
-##    U14 = matMult(U123,U4,['i','m','n'])
-##    print ("mult 3 done")
-##    U15 = matMult(U14,U5,['i','n','o'])
-##    print ("mult 4 done")
-##    U16 = matMult(U15,U6,['i','o','p'])
-##    print ("mult 5 done")
-##    USol = matMult(U16,U7,['i','q'])
+    # printall(USol, dim1)
+    b = printSols(prod, dim1, bins) # return fulfilled boundaries
+    b = set(b)
+    input("Please press enter to continue ")
+    pixelArray = convertToPlot(prod,dim1,bins) # make the corresponding boolean array
 
-    printSols(prod, dim1, bins)
+    fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
+    # print (dim1[-1])
+    plot = ax.imshow(pixelArray, interpolation='none', extent=[dim1[0], dim1[-1], dim1[-1], dim1[0]])
+    # plot = plt.imshow(pixelArray)  # draw plot
+    plt.show(plot) # show plot
+    input("Please press enter to continue")
 
 start_time = time.time()
 main()
