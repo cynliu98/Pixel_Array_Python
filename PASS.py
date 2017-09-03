@@ -196,30 +196,6 @@ def steadyStateTest(orderedvars,params,dim):
 
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
-    # Non-functional W-J code, although I think the math is right.
-    '''p = float(params[0]); delta = float(params[1])
-    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
-        return False
-    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
-        return False
-
-    source = math.pow(uleft,p)
-    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    v = source + diffusion
-    try:
-        grad = [factor*math.pow(ui,delta),
-            factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
-            factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
-    except:
-        return False
-
-    mag = 0 # magnitude
-    for i in grad:
-        mag += math.pow(i,2)
-    mag = math.pow(mag,.5)
-    maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
-    return (abs(v) < maxchange)'''
-
     # Functional W-J code
     assert(len(orderedvars) == 3)
     p = float(params[0]); delta = float(params[1])
@@ -393,6 +369,25 @@ def printSols(USol, dim1, bins):
     print ("There were " + str(countsol) + " solutions")
     return boundaries
 
+# old printing method
+def oldPrintSols(USol, dim1, bins, dimSol):
+    assert bins > 0
+    count = 0; i = 0; countsol = 0;
+    for e in USol.getTensor().flatten():
+        if e.getSol()[0][0] is not None: # solutions exist
+            count += 1
+            indices = []; vals = []
+            for j in range(dimSol):
+                indices.append(i//int(math.pow(bins,j)) % bins)
+                vals.append('%.2f'%dim1[indices[-1]])
+
+            countsol += str(e).count('(')
+            print ("Value for bc's " + str(vals[::-1]) + ": " + str(e))
+        i += 1
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+    print ("There were " + str(countsol) + " solutions")
+
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
 # Assumes 2 dimensional
@@ -421,7 +416,7 @@ def printBCs(USol, dim1, bins):
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
 
 # convert a USol to a 2D boolean numpy array
-def convertToPlot(USol, dim1, bins):
+def convertToPlotOld(USol, dim1, bins):
     rawArray = []; el = []
     i = 0
     for e in USol.getTensor().flatten():
@@ -503,10 +498,11 @@ def main():
     reduceSolutions(prod, dim1, numMats)
 
     # printall(USol, dim1)
-    b = printSols(prod, dim1, bins) # return fulfilled boundaries
-    b = set(b)
+    '''b = printSols(prod, dim1, bins) # return fulfilled boundaries
+    b = set(b) # remove redundant'''
+    oldPrintSols(prod, dim1, bins, 2)
     input("Please press enter to continue ")
-    pixelArray = convertToPlot(prod,dim1,bins) # make the corresponding boolean array
+    pixelArray = convertToPlotOld(prod,dim1,bins) # make the corresponding boolean array
 
     fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
     # print (dim1[-1])

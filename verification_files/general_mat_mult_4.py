@@ -393,6 +393,25 @@ def printSols(USol, dim1, bins):
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
 
+# old printing method
+def oldPrintSols(USol, dim1, bins, dimSol):
+    assert bins > 0
+    count = 0; i = 0; countsol = 0;
+    for e in USol.getTensor().flatten():
+        if e.getSol()[0][0] is not None: # solutions exist
+            count += 1
+            indices = []; vals = []
+            for j in range(dimSol):
+                indices.append(i//int(math.pow(bins,j)) % bins)
+                vals.append('%.2f'%dim1[indices[-1]])
+
+            countsol += str(e).count('(')
+            print ("Value for bc's " + str(vals[::-1]) + ": " + str(e))
+        i += 1
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+    print ("There were " + str(countsol) + " solutions")
+
 def main():
 
     numMats = 8; dimU = 3
