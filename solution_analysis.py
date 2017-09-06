@@ -121,7 +121,7 @@ def main():
 
     worstL = [-1,-1,-1] # the worst 3 L2 values
     worstsols = [[],[],[]] # the worst 3 solutions
-    sols, bcs = readSolutions('heat_again.txt')
+    sols, bcs = readSolutions('sample_for_analysis.txt')
     for i in range(len(bcs)):
         for j in range(len(sols[i])):
             val = L2(sols[i][j],bcs[i][0],bcs[i][1],9)

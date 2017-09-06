@@ -329,6 +329,28 @@ def reduceSolutions(USol, dim, numMats):
         # remove all not unique solutions
         for rep in notuniques:
             e.delete(rep)
+
+# restrict the bound of solutions, returning it to trueBounds
+def boundSolutions(USol, tb, b):
+    for e in USol.getTensor().flatten():
+        sol = e.getSol()
+
+        invalids = []
+        for s in sol: # for every solution for this boundary
+            for val in s: # for every value in the solution
+                if (val > tb[1] + b) or (val < tb[0] - b): # if the value is outside the true bounds
+                    invalids.append(solutionTuple(s)) # is invalid solution
+                    break
+
+        for inv in invalids:
+            e.delete(inv) # delete invalid solution
+
+def convertToThousanths(arr):
+    toRtn = []
+    for el in arr:
+        toRtn.append(round(el,3))
+
+    return toRtn
         
 # print the entire matrix
 # basically useless
@@ -347,27 +369,36 @@ def printall(USol, dim1, bins):
 def printSols(USol, dim1, bins):
     assert bins > 0
     count = 0; countsol = 0;
-
+    b = dim1[1] - dim1[0]
+    solsDict = {}
     for e in USol.getTensor().flatten():
         sols = e.getSol()
-        if sols[0][0] is not None: # solutions exist
+        if (sols[0][0] is not None): # solutions exist
             count += 1
             boundaries = []
             for s in sols:
-                boundaries.append([s[0],s[-1]]) # the new boundary conditions
+                boundaries.append(convertToThousanths([s[0],s[-1]])) # the new boundary conditions
+
+            assert len(boundaries) == len(sols)
+            for i in range(len(boundaries)):
+                ind = ((boundaries[i][0]+.00001)//b)*bins + (boundaries[i][1]+.00001)//b
+                if ind in solsDict.keys():
+                    solsDict[ind].add(solutionTuple(convertToThousanths(sols[i])[1:-1]))
+                else:
+                    solsDict[ind] = solutionTuple(convertToThousanths(sols[i][1:-1]))
 
             '''for j in range(dimSol):
                 indices.append(i//int(math.pow(bins,j)) % bins)
                 vals.append('%.2f'%dim1[indices[-1]])''' # old boundary calculation
 
             countsol += str(e).count('(')
-            assert len(boundaries) == len(sols)
-            for i in range(len(boundaries)):
-                print ("Value for bc's " + str(boundaries[i]) + ": " + str(sols[i][1:-1]))
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
-    return boundaries
+    print ("The solutions are: ")
+    for key, value in sorted(solsDict.items()):
+        bounds = [dim1[int(key//bins+.00001)], dim1[int(key%bins+.00001)]]
+        print ("Value for bc's " + str(bounds) + ": " + str(value))
 
 # old printing method
 def oldPrintSols(USol, dim1, bins, dimSol):
@@ -438,14 +469,19 @@ def convertToPlotOld(USol, dim1, bins):
 
     return toRtn
 
-
 def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 9; dimU = 3
     params = [2,1]
-    bins = 41
+    b = (trueBounds[1]-trueBounds[0])/(trueBins-1) # bin size
+    trueBins = 41; trueBounds = [0,2]; trueDim = [((trueBins-1-i)*trueBounds[0]+i*trueBounds[1])/(trueBins-1) for i in range(trueBins)]
+    adjust = (1/(numMats-2)) * (trueBounds[1]-trueBounds[0]) # amount by which to adjust bounds
+    rawRang = [trueBounds[0]-adjust, trueBounds[1]+adjust] # raw range - have to adjust it by bins
+    rang = [roundtores(rawRang[0],[1,1+b]),roundtores(rawRang[1],[1,1+b])] # true range: has possible bin values as bound ends
+    bins = round(trueBins + (trueBounds[0]-rang[0])//b + (rang[1]-trueBounds[1])//b )# the number of bins to run on is the number of bins in the small range, plus twice the number
+    # of bins in the adjustment value
     simple = False
 
     alused = al[8:] + al[0:8]
@@ -458,7 +494,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,2,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,rang[0],rang[1],bins,params,varnames,dimU)
     print (str(dim1))
 
     # debugging the steady state tester
@@ -496,11 +532,12 @@ def main():
         prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
     else: prod = matMult(Us[0],Us[1],['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
+    boundSolutions(prod, trueBounds, b)
 
     # printall(USol, dim1)
     '''b = printSols(prod, dim1, bins) # return fulfilled boundaries
     b = set(b) # remove redundant'''
-    oldPrintSols(prod, dim1, bins, 2)
+    printSols(prod, dim1, bins, 2)
     input("Please press enter to continue ")
     pixelArray = convertToPlotOld(prod,dim1,bins) # make the corresponding boolean array
 

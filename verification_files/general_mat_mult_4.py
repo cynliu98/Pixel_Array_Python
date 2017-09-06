@@ -17,7 +17,7 @@ from string import ascii_lowercase as al
 class solutionTuple(object):
     def __init__(self,sol=None):
         if type(sol) == list:
-            self.sol = [[i for i in sol]]
+            self.sol = [sol]
         else:
             self.sol = [[sol]] # first value yay!
 
@@ -40,17 +40,22 @@ class solutionTuple(object):
     def getSol(self):
         return self.sol
 
-    def add(self, tup2): # rightwards add
+    def add(self, tup2): # rightwards add if unique
         j = 0
         if self.sol[0][0] is None:
             self.sol = [tup2.getSol()[0]]
             j = 1
 
         for i in range(j, len(tup2.getSol())):
-            self.sol.append(tup2.getSol()[i])
+            if not(tup2.getSol()[i] in self.sol):
+                self.sol.append(tup2.getSol()[i])
 
     def delete(self, tup): # remove tup from self.sol
         self.sol.remove(tup.getSol()[0])
+        if len(self.sol) == 0:
+            self.sol = [[None]]
+        elif len(self.sol[0]) == 0:
+            self.sol == [[None]]
         
     def mult(self, tup2): # rightwards multiply - Cartesian multiplication
         if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
@@ -340,8 +345,8 @@ def reduceSolutions(USol, dim, numMats):
     for e in USol.getTensor().flatten():
         sol = e.getSol()
 
-        uniques = [];
-        i = 0;
+        uniques = []
+        i = 0
         notuniques = []
         for s in sol:
             if (i == 0):
@@ -368,30 +373,63 @@ def reduceSolutions(USol, dim, numMats):
         for rep in notuniques:
             e.delete(rep)
 
+# restrict the bound of solutions, returning it to trueBounds
+def boundSolutions(USol, tb, b):
+    for e in USol.getTensor().flatten():
+        sol = e.getSol()
+
+        invalids = []
+        for s in sol: # for every solution for this boundary
+            for val in s: # for every value in the solution
+                if (val > tb[1] + b) or (val < tb[0] - b): # if the value is outside the true bounds
+                    invalids.append(solutionTuple(s)) # is invalid solution
+                    break
+
+        for inv in invalids:
+            e.delete(inv) # delete invalid solution
+
+def convertToThousanths(arr):
+    toRtn = []
+    for el in arr:
+        toRtn.append(round(el,3))
+
+    return toRtn
+
 # print only all the solutions
 # Assumes 2 dimensional
 def printSols(USol, dim1, bins):
     assert bins > 0
     count = 0; countsol = 0;
+    b = dim1[1] - dim1[0]
+    solsDict = {}
     for e in USol.getTensor().flatten():
         sols = e.getSol()
-        if sols[0][0] is not None: # solutions exist
+        if (sols[0][0] is not None): # solutions exist
             count += 1
             boundaries = []
             for s in sols:
-                boundaries.append([s[0],s[-1]]) # the new boundary conditions
+                boundaries.append(convertToThousanths([s[0],s[-1]])) # the new boundary conditions
+
+            assert len(boundaries) == len(sols)
+            for i in range(len(boundaries)):
+                ind = ((boundaries[i][0]+.00001)//b)*bins + (boundaries[i][1]+.00001)//b
+                if ind in solsDict.keys():
+                    solsDict[ind].add(solutionTuple(convertToThousanths(sols[i])[1:-1]))
+                else:
+                    solsDict[ind] = solutionTuple(convertToThousanths(sols[i][1:-1]))
 
             '''for j in range(dimSol):
                 indices.append(i//int(math.pow(bins,j)) % bins)
                 vals.append('%.2f'%dim1[indices[-1]])''' # old boundary calculation
 
             countsol += str(e).count('(')
-            assert len(boundaries) == len(sols)
-            for i in range(len(boundaries)):
-                print ("Value for bc's " + str(boundaries[i]) + ": " + str(sols[i][1:-1]))
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
+    print ("The solutions are: ")
+    for key, value in sorted(solsDict.items()):
+        bounds = [dim1[int(key//bins+.00001)], dim1[int(key%bins+.00001)]]
+        print ("Value for bc's " + str(bounds) + ": " + str(value))
 
 # old printing method
 def oldPrintSols(USol, dim1, bins, dimSol):
@@ -413,10 +451,15 @@ def oldPrintSols(USol, dim1, bins, dimSol):
     print ("There were " + str(countsol) + " solutions")
 
 def main():
-
     numMats = 8; dimU = 3
     params = []
-    bins = 41
+    trueBins = 41; trueBounds = [0,2]; trueDim = [((trueBins-1-i)*trueBounds[0]+i*trueBounds[1])/(trueBins-1) for i in range(trueBins)]
+    b = (trueBounds[1]-trueBounds[0])/(trueBins-1) # bin size
+    adjust = (1/(numMats-2)) * (trueBounds[1]-trueBounds[0]) # amount by which to adjust bounds
+    rawRang = [trueBounds[0]-adjust, trueBounds[1]+adjust] # raw range - have to adjust it by bins
+    rang = [roundtores(rawRang[0],[1,1+b]),roundtores(rawRang[1],[1,1+b])] # true range: has possible bin values as bound ends
+    bins = round(trueBins + (trueBounds[0]-rang[0])//b + (rang[1]-trueBounds[1])//b )# the number of bins to run on is the number of bins in the small range, plus twice the number
+    # of bins in the adjustment value
 
     alused = al[8:] + al[0:8]
     bound = numMats + dimU - 1 # how many variable names we need - 1
@@ -428,7 +471,7 @@ def main():
         varnames += newvars
         i += 1
 
-    Us, dim1 = makeAllU(numMats,0,2,bins,params,varnames,dimU)
+    Us, dim1 = makeAllU(numMats,rang[0],rang[1],bins,params,varnames,dimU)
 
     prod = [];
     for i in range(len(Us)-2):
@@ -445,6 +488,7 @@ def main():
     if prod: prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]]) # the final multiplication
     else: prod = matMult(Us[0], Us[1], ['i','k','l'])
     reduceSolutions(prod, dim1, numMats)
+    boundSolutions(prod, trueBounds, b)
 
 ##    U12 = matMult(U1,U2,['i','k','l'])
 ##    print ("mult 1 done")
@@ -458,7 +502,7 @@ def main():
 ##    print ("mult 5 done")
 ##    USol = matMult(U16,U7,['i','q'])
 
-    printSols(prod, dim1, bins)
+    printSols(prod, trueDim, bins)
 
 start_time = time.time()
 main()
