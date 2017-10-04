@@ -165,21 +165,22 @@ However, a general solution to \cref{Reaction-Diffusion Equation}, or even just 
 
 This is where the Pixel Array (PA) method \citep{Introduction_to_PA} becomes relevant. Unlike many other numerical methods, it provides all solutions to a system of equations within a bounding box and is often faster than quasi-Newton methods. Because partial differential equations can be converted to a system of equations using discrete approximation methods, the PA method can be applied to partial differential equations. However, as the PA method is quite new, we also undertake to test its accuracy in a few well-known cases.
 
-To test and also use the PA method, we needed to adapt it so as to produce a full solution set, rather than just existence of solutions in chosen variables. We refer to the result as the Pixel Array Solution-Set method (PASS). The ``bounding box" in this case consists of a pair of ranges for boundary values, one on each side of the one-dimensional reaction-diffusion system. The PASS method numerically finds steady states to all boundary values within the specified range. With this method, we can quickly and efficiently search for steady states of reaction-diffusion equations, which do not appear to be well-understood.
+To test and also use the PA method, we needed to adapt it so as to produce a matrix of full solution sets, rather than just boolean values indicating where solutions exist. We refer to this adapted method as the Pixel Array Solution-Set (PASS) method. The ``bounding box" in this case consists of a pair of ranges for boundary values, one on each side of the one-dimensional reaction-diffusion system; of course a higher-dimensional tensor of solution sets would be appropriate for a higher-dimensional system. Using the PASS method, we were able to quickly and efficiently search for steady states of reaction-diffusion equations, which do not appear to be well-understood.
 
-The plan of the paper is as follows. In \cref{sec:methods} we provide a brief review of the finite differences method, as well as describe our modification of the PA method. In \cref{sec:verification} we use a combination of these methods to discretize the heat equation, the local Fisher equation, and what we will call the \textit{Wilhelmsson-Jancel} equation, and calculate numerical solutions.
+The plan of the paper is as follows. In \cref{sec:methods} we provide a brief review of the finite differences method, as well as describe our modification of the PA method. In \cref{sec:verification} we use a combination of these methods to discretize the heat equation, the local Fisher equation, and what we will call the \textit{Wilhelmsson-Jancel} equation, and calculate numerical solutions. The first two of these, already being solved, allowed us to verify the accuracy of the PASS method.
 
-We then test the PASS method on several solved diffusion equations, including the heat equation, to verify its accuracy. Finally, we test the program on variants of the Wilhelmsson-Jancel equation whose solutions and steady states are unknown. The results of this testing provide us insight into the behavior of this equation by suggesting a new hypothesis about equilibrium behavior, and by showing a pattern in the boundary values for which steady states might exist.
+Finally, we apply the method to variants of the Wilhelmsson-Jancel equation whose solutions and steady states appear to be unknown. The results of this work provides us insight into the behavior of the equation by suggesting a new hypothesis about equilibrium behavior, and by showing a pattern in the boundary values for which steady states might exist.
 
 \section{Methods}\label{sec:methods}
 
+\todo[inline]{Introduce this section with a few lines.}
 \subsection{Finite Differences}
 
 \begin{comment}
 Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
 \end{comment}
 
-To apply the PASS method, we need to convert the reaction-diffusion equation with $u_t = 0$ to a linear equation. This is done using finite differences, which uses the difference definition of derivatives to approximate derivatives. For instance,
+To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to a linear equation\todo{In general, finite differences doesn't give linear equations, right?}. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
 
 \begin{equation}
     \label{FD second order}
