@@ -159,7 +159,7 @@ Many physical systems are modeled using partial differential equations, which de
 \end{equation}
 where $D(x)$ is a general diffusion coefficient, $R(u)$ is the reaction, and $f(x,t)$ is a source or a sink.
 
-Due to the ubiquity of \cref{Reaction-Diffusion Equation}, a large body of research has been developed to understand its behavior and solutions. General solutions have been found for the diffusion equation for general $D$, as well as the general inhomogeneous diffusion equation that includes a source term but not a reaction term \citep{Kuttler_lecture}\todo{If the latter generalizes the former, why include both?}. Furthermore, general solutions are known for several specific cases of nonzero reaction terms. For instance, a general solution to the Fisher equation $u_t = u_{xx} + \mu u(1-u)$, where $\mu$ is a constant, was derived by \citep{AnalyticFisher}.
+Due to the ubiquity of \cref{Reaction-Diffusion Equation}, a large body of research has been developed to understand its behavior and solutions. General solutions several specific cases of reaction terms, including zero. For instance, a general solution to the Fisher equation $u_t = u_{xx} + \mu u(1-u)$, where $\mu$ is a constant, was derived by \citep{AnalyticFisher}.
 
 However, a general solution to \cref{Reaction-Diffusion Equation}, or even just a general steady state analysis, has remained out of reach. Therefore, unsolved forms of the equation have been analyzed using numerical methods \citep{Numerical_RD_1, Numerical_RD_2, Numerical_RD_3}. These methods usually require initial and boundary conditions to be satisfied, and provide one numerical solution.
 
@@ -173,14 +173,16 @@ Finally, we apply the method to variants of the Wilhelmsson-Jancel equation whos
 
 \section{Methods}\label{sec:methods}
 
-\todo[inline]{Introduce this section with a few lines.}
+The methods we use to numerically solve for steady states are described below. We first briefly illustrate our discretization method, finite differences. Then we describe the difference between PASS and PA. Finally, we demonstrate how using PASS with discretized partial differential equations lets us generate steady states.
+
+% \todo[inline]{Introduce this section with a few lines.}
 \subsection{Finite Differences}
 
 \begin{comment}
 Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
 \end{comment}
 
-To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to a linear equation\todo{In general, finite differences doesn't give linear equations, right?}. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
+To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to a linear equation\todo{In general, finite differences doesn't give linear equations, right?} \begin{comment} I'm not completely sure what you mean by this. Used alone, finite differences should give linear equations? As in none of the discrete u terms are multiplied together. But depending on the reaction-diffusion equation, we might get non-linear equations overall, as shown by W-J \end{comment}. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
 
 \begin{equation}
     \label{FD second order}
@@ -215,14 +217,14 @@ Each equation in the discretized system corresponds to an array in the Pixel Arr
 \begin{subfigure}{.4\textwidth}
   \centering
   \captionsetup{width=0.8\textwidth}
-  \includegraphics[width=.9\linewidth]{"pixel array".png}
-  \caption{A low-resolution pixel array corresponding to the function plot. When the equation is satisfied at a vertex, we ``round up" in y.}
+  \includegraphics[width=.8\linewidth]{"pixel array".png}
+  \caption{A low-resolution pixel array corresponding to the function plot. When the equation is satisfied at a vertex, we ``round up" in y. That means pixels adjacent to the vertex with y larger than y at the vertex are 1; the other adjacwnt vertices are 0.}
   \label{sample_pixel_array}
 \end{subfigure}%
 \caption{An example plot with its corresponding pixel array}
 \label{plot_and_pa}
 \end{figure}
-\todo{What does the second caption mean, ``round up in $y$''?}
+% \todo{What does the second caption mean, ``round up in $y$''?}
 
 As a more numerical example, consider the equation $x + y = 1$. If the range of values each variable can assume within one row or column has size 1, then the entry associated with $x \in [0,1)$, $y \in [.3,1.3)$ would be ``True." This is because there exists a solution $(x',y')$ in the given ranges to $x + y = 1$. 
 
