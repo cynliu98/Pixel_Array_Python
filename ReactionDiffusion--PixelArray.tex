@@ -182,14 +182,14 @@ The methods we use to numerically solve for steady states are described below. W
 Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
 \end{comment}
 
-To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to a linear equation\todo{In general, finite differences doesn't give linear equations, right?} \begin{comment} I'm not completely sure what you mean by this. Used alone, finite differences should give linear equations? As in none of the discrete u terms are multiplied together. But depending on the reaction-diffusion equation, we might get non-linear equations overall, as shown by W-J \end{comment}. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
+To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to an equation with no derivatives. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
 
 \begin{equation}
     \label{FD second order}
     u_{xx} = \cfrac{1}{h^2} (u_{i+1} - 2u_i + u_{i-1})
 \end{equation}
 
-\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$. When applied to the reaction-diffusion equation \eqref{Reaction-Diffusion Equation}---given that we are interested in steady states---this becomes:
+\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences gives linear equations, but depending on the reaction-diffusion equation, the discretized form of that equation might not be linear.} When applied to the reaction-diffusion equation \eqref{Reaction-Diffusion Equation}---given that we are interested in steady states---this becomes:
 
 \begin{equation}
     \label{discrete RD}
@@ -201,7 +201,7 @@ Equations like \eqref{discrete RD} will be called \textit{discrete steady state 
 
 \subsection{PASS: Modifying the Pixel Array method to pass along solution sets}
 
-Each equation in the discretized system corresponds to an array in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation (or inequality). Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. Figure \cref{sample_function} is a function graph, and figure beside it (\cref{sample_pixel_array}) is its corresponding pixel array with vertical dimension y and horizontal dimension x. Observe that the pixel array is upside down, to match conventions described in \citep{Introduction_to_PA}.
+Each equation in the discretized system corresponds to an array in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation (or inequality). Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. To represent this, we present Figure \cref{sample_function}, which is a function graph, and figure (\cref{sample_pixel_array}) as its corresponding pixel array with vertical dimension y and horizontal dimension x. Observe that the pixel array is upside down, to match conventions described in \citep{Introduction_to_PA}.
 
 \begin{figure}[h]
 \begin{subfigure}{.4\textwidth}
@@ -223,9 +223,9 @@ Each equation in the discretized system corresponds to an array in both the Pixe
 \end{figure}
 % \todo{What does the second caption mean, ``round up in $y$''?}
 
-As a more numerical example, consider the equation $x + y = 1$. If the range of values each variable can assume within one row or column has size 1, then the entry associated with $x \in [0,1)$, $y \in [.3,1.3)$ would be ``True." This is because there exists a solution $(x',y')$ in the given ranges to $x + y = 1$. \todo[inline]{What is the function of this paragraph? Might we consider deleting it and using the example in Fig 1 instead?}
+In Figure (\ref{plot_and_pa}), each of the cells in Figure (\ref{sample_function}) corresponds to a pixel in Figure (\ref{sample_pixel_array}). For instance, the function $y=x^2$ goes through the cell with $x \in [-2,-1]$, $y \in [2,3]$, and therefore its associated pixel, the third pixel in the second row, has the value 1.
 
-It is useful to set up a naming convention which relates the tensor entries and the cubes they correspond to. We thus refer to an entry by the value exactly at the center of its range; e.g.\ in the above pixel would be  known as $(0.5, 0.8)$. When we wish to refer to all of an entry's possible values as opposed to just the center value, we refer to it as a \textit{subcube}. We say that the \textit{bin-size}---meaning the width of each variable---for this pixel is $(1,1)$. For simplicity, we will assume that the bin sizes of all variables are equal, for every system we discuss.
+It is useful to set up a naming convention which relates the tensor entries and the cubes they correspond to. We thus refer to an entry by the value exactly at the center of its range; e.g. in the above example the pixel would be known as $(-1.5, 2.5)$. When we wish to refer to all of an entry's possible values as opposed to just the center value, we refer to it as a \textit{subcube}. We say that the \textit{bin-size}---meaning the width of each variable---for this pixel is $(1,1)$. For simplicity, we will assume that the bin sizes of all variables are equal, for every system we discuss.
 
 Suppose each equation in the system has been plotted as a tensor, as above. To solve the simultaneous system of equations, these tensors are multiplied together by contracting various edges. The resulting tensor will then indicate all combinations of the remaining variables for which there exists a solution to the system.
 
@@ -252,7 +252,7 @@ To get some intuition for the solutionSet data type, consider the homogeneous he
     u_{i+1} - 2u_i + u_{i-1} = 0
 \end{equation}
 
-\noindent The corresponding tensor has three dimensions, corresponding to the variables $u_{i+1}$, $u_i$, and $u_{i-1}$ in \cref{discrete RD}. Each tensor entry corresponds to a subcube; let $(x,yz)$ denote the center point of that subcube in space. The value in that entry will be the corresponding solution-set for the equation \cref{discrete heat}. That is, the value will be the empty set $\{\}$ if either the empty set if $(x,y,z)$ is not sufficiently close to a solution, and it will be the one-element set $\{(x,y,z)$\} if $(x,y,z)$ is sufficiently close to a solution.\todo{Is this correct? Say what ``sufficiently close'' means.}
+\noindent The corresponding tensor has three dimensions, corresponding to the variables $u_{i+1}$, $u_i$, and $u_{i-1}$ in \cref{discrete RD}. Each tensor entry corresponds to a subcube; let $(x,y,z)$ denote the center point of that subcube in space. The value in that entry will be the corresponding solution-set for the equation \cref{discrete heat}. That is, the value will be the empty set $\{\}$ if the subcube centered at $(x,y,z)$ does not contain a solution, and it will be the one-element set $\{(x,y,z)$\} if that subcube contains a solution.
 
 Tensor multiplication involves multiplication and addition. For boolean values, multiplication is as usual, e.g.\ $1*0=0$, and addition is almost as usual, the exception being that $1+1=1$; this is the usual \emph{Boolean semiring}, which is used in the PA method. For the PASS method, we need to define multiplication and addition of the solutionSet data type.
 
