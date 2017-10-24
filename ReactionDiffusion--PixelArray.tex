@@ -312,13 +312,11 @@ With all the matrices defined, we will multiply them using the general matrix mu
 \end{center}
 \end{figure*}
 
-In \cref{WD_heat}, the black dots (and the lines connecting them to circles) are called \textit{links}, while the circles are called \textit{cells} (in \citep{Introduction_to_PA} they were called \textit{packs}). Each cell represent one equation, its ports represent the variables of that equation, and the links represent the dependencies between variables. For example, because the equation for $u_i$ in \cref{discrete heat} depends on $u_{i+1}$ and $u_{i-1}$, there are links connecting the cells representing $u_{i+1}$, $u_{i-1}$, and $u_i$. Finally, observe that although the value in cell 0 affects the value in cell 1, the value in cell 1 does not alter the value in cell 0. As a result, discontinuities may occur at cell 0, and the analogous boundary, cell $n$, on the other side. To account for such discontinuities, we use cell 0 in calculation, but do not include it in the final solution. So we call cell 0 and cell $n$ ``hidden boundaries," and cells 1 and $n-1$ are the ``boundary conditions." As shown in \cref{WD_heat}, the boundary conditions are also the exposed variables.
-\begin{comment} I hope this is clearer \end{comment}
+In \cref{WD_heat}, the black dots (and the lines connecting them to circles) are called \textit{links}, while the circles are called \textit{cells} (in \citep{Introduction_to_PA} they were called \textit{packs}). Each cell represent one equation, its ports represent the variables of that equation, and the links represent the dependencies between variables. For example, because the equation for $u_i$ in \cref{discrete heat} depends on $u_{i+1}$ and $u_{i-1}$, there are links connecting the cells representing $u_{i+1}$, $u_{i-1}$, and $u_i$.
 
-Because we expose cells that are 1 away from the hidden boundary, we might inadvertently lose information because the global maximum or minimum may be achieved at the hidden boundary. Removing these boundaries, therefore, may artificially restrict the range of possible discrete steady state solution values. We resolve this issue by calculating steady states using a larger range of values than the range of values given, and then removing all the steady states whose values don't fall within the range. \todo[inline]{I don't know if this is clearer, and I have included a comment with a clarified algorithm} \todo[inline, author=David]{Maybe you can explain why we needed the hidden boundary to begin with. (Sorry, I've forgotten.)}\begin{comment} An algorithm: first, a desired range $r = [x,y]$ is given. Secondly, we calculate an expanded range $r'$ by increasing the size of the range by $n/(n-2)$. Then, we adjust the number of bins so the size of bins $b$ remains constant. Finally, we run the program on $r'$, and then post-process the steady states to ensure that all reported solutions lie within $r$.\end{comment}.
+The last thing to explain about \cref{WD_heat} is the fact that we have both \emph{hidden boundaries}, cells 0 and 6, and the \emph{exposed boundaries}, cells 1 and 5. The boundary conditions found in the typical heat equation reference these exposed boundaries, and at first we did not include hidden boundaries. However, we found that in this case an anomaly can arise due to the spacial discretization in equations with a left-right asymmetry. For example, this problem does not arise for the heat equation or the Fischer equation \cref{discrete heat,discrete Fisher}, but it does arise for the Wilhelmsson-Jancel equation \cref{discrete WJ}. By adding the hidden boundaries, the anomaly vanishes.
 
-To see which variables should be exposed upon computing a product, we consider a theoretical system in Figure \cref{WD_oneproduct}. We draw a larger cell around the two cells whose corresponding matrices are being multiplied. Those links with a wire coming in or out of the cell are the exposed variables. So if we want to find the exposed variables in the product of the matrices $M_1$, $M_2$ (with links coming out of $M_i$ representing $u_i$) in \cref{WD_oneproduct}, we surround $M_1$ and $M_2$ in a cell and look at which links are exposed. Those links correspond to $u_0, u_2, u_3$.
-\todo[inline]{I don't know if this is clearer}
+\cref{WD_oneproduct} represents a multiplication of two 3-dimensional tensors $M_1$ and $M_2$, the result of which is a 4-dimensional tensor. (The dimension of a tensor is indicated in the diagram by its number of ports.) It is given by contracting along the links connecting $M_1$ and $M_2$, which represent shared dimensions. Performing multiple such tensor multiplications, one obtains the tensor multiplication indicated by \cref{WD_heat}.
 
 % I don't know how to label the links
 
@@ -327,29 +325,24 @@ To see which variables should be exposed upon computing a product, we consider a
 \label{WD_oneproduct}
 \begin{center}
 \begin{tikzpicture}[unoriented WD, surround sep= 3pt]
-    \node[pack]                (n0) {$M_0$};
-	\node[pack, right=1 of n0] (n1) {$M_1$};
+	\node[pack] (n1) {$M_1$};
 	\node[pack, right=1 of n1] (n2) {$M_2$};
-	\node[pack, right=1 of n2] (n3) {$M_3$};
-	\node[link, below=.3 of n3] (l3) {};
 	\node[link, above=.3 of n2] (l2) {};
 	\node[link, below=.3 of n1] (l1) {};
-    \node[link, above=.3 of n0] (l0) {};
-	\node[outer pack, fit={($(n0.north)+(0,.5)$) ($(n1.south)+(0,-1)$) ($(n2.north east)+(1,0)$) ($(n3.north)+(0,.5)$)}] (outer) {};
-	\draw (n0.north) -- (l0);
+	\node[outer pack, fit={(n1) (n2) (l1) (l2)}] (outer) {};
 	\draw (n1.south) -- (l1);
 	\draw (n2.north) -- (l2);
-	\draw (n3.south) -- (l3);
+	\draw (n1.north west) to[bend left=15pt] (outer.north west);
+	\draw (n2.south east) to[bend left=15pt] (outer.south east);
 	\draw (l1) to[bend right] (n2.south west);
-	\draw (l0) to [bend right=15pt] (outer.west);
 	\draw (l2) to[bend right=15pt] (n1);
-	\draw (l2) to[bend right=15pt] (outer.north east);
-	\draw (l0) to[bend left] (n1.north west);
-	\draw (l3) to[bend left] (n2.south east);
-	\draw (l3) to[bend right=15pt] (outer.east);
+	\draw (l1) to[bend left=15pt] (outer.west);
+	\draw (l2) to[bend left=15pt] (outer.east);
 \end{tikzpicture}
 \end{center}
 \end{figure*}
+
+\todo[inline,author=David]{Somewhere say that the tensors we will multiply have, in each entry, the solutions to the local equation there. And then use this to transition into the next paragraph, or combine them.}
 
 By the definition of solutionSet multiplication defined in Section 2.2, if the entry $\{(u_1)\}$ is multiplied by the entry $\{(u_2)\}$, the resulting solutionSet is $\{(u_1, u_2)\}$. Recall from \cref{sec:PASS} that the entry $\{(u_1)\}$ would only occur if \cref{discrete heat} were satisfied for that particular value. The same can be said for the entry $\{u_2\}$. Therefore, the product $\{(u_1, u_2)\}$ would only be produced if their values satisfied in \cref{discrete heat} for \textit{both} $i = 1$ and $i = 2$.
 
