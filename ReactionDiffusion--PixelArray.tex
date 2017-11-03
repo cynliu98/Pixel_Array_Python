@@ -255,7 +255,7 @@ To get some intuition for the solutionSet data type, consider the homogeneous he
 
 \noindent The corresponding tensor has three dimensions, corresponding to the variables $u_{i+1}$, $u_i$, and $u_{i-1}$ in \cref{discrete RD}. Each tensor entry corresponds to a subcube; let $(x,y,z)$ denote the center point of that subcube in space. The value in that entry will be the corresponding solution-set for the equation \cref{discrete heat}. That is, the value will be the empty set $\{\}$ if the subcube centered at $(x,y,z)$ does not contain a solution, and it will be the one-element set $\{(x,y,z)$\} if that subcube contains a solution.
 
-Tensor multiplication involves multiplication and addition. For boolean values, multiplication is as usual, e.g.\ $1*0=0$, and addition is almost as usual, the exception being that $1+1=1$; this is the usual \emph{Boolean semiring}, which is used in the PA method. For the PASS method, we need to define multiplication and addition of the solutionSet data type.
+Tensor multiplication involves multiplication and addition. For boolean values, multiplication is as usual, e.g.\ $1*0=0$, and addition is almost as usual, the exception being that $1+1=1$; this is the usual \emph{Boolean semiring}, which is used in the PA method. For the PASS method, we need to define multiplication and addition of the solutionSet data type. This data type will store the solutions to the local discrete steady state condition.
 
 The multiplication of solutionSets is defined to be the Cartesian product of the tuples, and addition is defined to be set union. So if two theoretical solutionSets, \{(1),(2),(3)\} and \{(3,4)\} were multiplied, the resultant tuple would be \{(1,3),(2,3),(3,3),(1,4),(2,4),(3,4)\}. If they were added, we would get \{(1),(2),(3),(4)\}. This defines a commutative semiring, whose additive unit is the empty set $\{\}$ and whose multiplicative unit is $\{()\}$. Thus for example, when a solutionSet is multiplied by $\{\}$, the result is zero. When a solutionSet is added to $\{\}$ or multiplied by $\{()\}$, the solutionSet remains the same.
 
@@ -263,7 +263,9 @@ With this definition of multiplication, the generalized matrix multiplication al
 
 \subsection{Producing Solutions}
 
-We will now demonstrate how the above definition of the solutionSet data type allows us to compute numerical steady states to the reaction diffusion equation. We do this by considering the heat equation \eqref{homogeneous heat} and its discrete version \eqref{discrete heat}. As discussed in \cref{sec:PASS}, all entries in the pixel array with dimensions $u_{i+1}$, $u_i$, and $u_{i-1}$ contain the single solution ${(u_i)}$ if $u_i$ satisfies \cref{discrete heat}. This is true for all partitions $i$.
+We will now demonstrate how the above definition of the solutionSet data type allows us to compute numerical steady states to the reaction diffusion equation. Specifically, we will show how the numerical steady states are stored within solutionSets, and expanded as more multiplications are performed. 
+
+We show this by example. Consider the heat equation \eqref{homogeneous heat} and its discrete version \eqref{discrete heat}. As discussed in \cref{sec:PASS}, all entries in the pixel array with dimensions $u_{i+1}$, $u_i$, and $u_{i-1}$ contain the single solution ${(u_i)}$ if $u_i$ satisfies \cref{discrete heat}. This is true for all partitions $i$.
 
 With all the matrices defined, we will multiply them using the general matrix multiplication algorithm described in \cref{sec:PASS}, but to do so we must determine which variables are exposed. We resolve this by introducing the \textit{Wiring Diagram} (WD) for this system; see \cref{WD_heat}. As described in \citep{Introduction_to_PA}, the WD lets us connect matrices by their variables and lets us decide which variables we want to be exposed when we have finished multiplying.
 
@@ -342,11 +344,9 @@ The last thing to explain about \cref{WD_heat} is the fact that we have both \em
 \end{center}
 \end{figure*}
 
-\todo[inline,author=David]{Somewhere say that the tensors we will multiply have, in each entry, the solutions to the local equation there. And then use this to transition into the next paragraph, or combine them.}
+Now that we know how to multiply matrices and determine exposed variables and boundary conditions, we use this knowledge to compute the value of a general solutionSet.  By the definition of solutionSet multiplication defined in Section 2.2, if the entry $\{(u_1)\}$ is multiplied by the entry $\{(u_2)\}$, the resulting solutionSet is $\{(u_1, u_2)\}$. Recall from \cref{sec:PASS} that the entry $\{(u_1)\}$ would only occur if \cref{discrete heat} were satisfied for that particular value. The same can be said for the entry $\{u_2\}$. Therefore, the product $\{(u_1, u_2)\}$ would only be produced if their values satisfied in \cref{discrete heat} for \textit{both} $i = 1$ and $i = 2$. This means that the final value within the solutionSet is a numerical steady states, because each local numerical solution fulfills the discrete steady state condition.
 
-By the definition of solutionSet multiplication defined in Section 2.2, if the entry $\{(u_1)\}$ is multiplied by the entry $\{(u_2)\}$, the resulting solutionSet is $\{(u_1, u_2)\}$. Recall from \cref{sec:PASS} that the entry $\{(u_1)\}$ would only occur if \cref{discrete heat} were satisfied for that particular value. The same can be said for the entry $\{u_2\}$. Therefore, the product $\{(u_1, u_2)\}$ would only be produced if their values satisfied in \cref{discrete heat} for \textit{both} $i = 1$ and $i = 2$.
-
-Thus, by multiplying all the matrices together, we calculate sets of numerical steady states, each element of which satisfies the discrete steady state condition. Furthermore, with the PASS method, we can calculate steady states for all possible pairs of left and right boundary values at once, in some sense parallelizing that computation.
+Thus, by multiplying all the matrices together, we calculate solutionSets of numerical steady states. Each element within a single solutionSet satisfies the discrete steady state condition locally. Furthermore, with the PASS method, we can calculate steady states for all possible pairs of left and right boundary values at once, in some sense parallelizing that computation.
 
 \section{Verification}\label{sec:verification}
 
