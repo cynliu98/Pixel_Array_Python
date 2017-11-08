@@ -381,6 +381,8 @@ We run the PASS method%
 \footnote{The reader can find the code for this method at \url{https://github.com/cynliu98/Pixel\_Array\_Python}, called \textit{general\_mat\_mult\_4.py}, in the archives folder.}
 for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. The program uses a partition of $n=8$ parts \todo{What do you mean partition and parts? What are they for}and a temperature mesh of $b = .05$, giving 41 bins for each cell. The boundaries $[1.9,0.55]$ \todo{is this a range, or a single boundary value pair?} gave a total of 11 steady states, some of which are shown in \cref{heats}. The largest modified $L_2$ norm among these solutions was \todo{This sentence ended abruptly. Is the worst case shown in the diagram?}. Thus, all modified norms are smaller than the bound determined by equation \cref{n norm}. The bound also holds for the steady states given by other pairs of boundaries. The runtime under these conditions was about 270 seconds in Python 3.\todo{That sounds super slow. How many boundary value pairs did you do?}
 
+\todo[inline]{What is \cref{heats} trying to tell us? How does it fit into the narrative?}
+
 \begin{figure*}
 \begin{center}
 \begin{tikzpicture}
