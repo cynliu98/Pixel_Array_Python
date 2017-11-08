@@ -350,39 +350,36 @@ Thus, by multiplying all the matrices together, we calculate solutionSets of num
 
 \section{Verification}\label{sec:verification}
 
-We will verify the accuracy of PASS by analyzing three reaction-diffusion equations. The first has no reaction term and a constant diffusion coefficient. The second has a nonconstant reaction term and constant diffusion coefficient. The last has both a nonconstant diffusion coefficient and nontrivial reaction term.
+We will verify the accuracy of PASS by analyzing three reaction-diffusion equations. In \cref{sec:homog_heat} the equation has a constant diffusion coefficient and no reaction term. In \cref{sec:Fisher} the equation has a constant diffusion coefficient and a nonconstant reaction term. In \cref{sec:WJ} the equation has a nontrivial reaction term and a nonconstant diffusion coefficient.
 
-\subsection{Homogeneous Heat Equation}
+\subsection{Homogeneous Heat Equation}\label{sec:homog_heat}
 
 We first consider the homogeneous heat equation as described by \cref{homogeneous heat}, whose discrete steady state condition is \cref{discrete heat}. It is well known that steady states to the homogeneous heat equation are linear between the two boundary conditions, and this fact can also be verified by directly solving the equation.
 
-First, we will prove, for any number $n$ of cells, that the numerical solution converges to the true solution as the number of bins for a fixed range goes to infinity. This is equivalent to the bin size $b$ going to 0. We assume that all variables share the same number of bins and same possible values, due to the symmetry of the system.
+One can prove that, for any number of cells and any range, as the number of bins tends to infinity, the numerical solution given by the PASS method converges to the true solution. Indeed, this is a direct consequence of Theorem 3.4.1 in \citep{Introduction_to_PA}.
+%First, we will prove, for any number $n$ of cells, that the numerical solution given by the PASS method converges to the true solution as the number of bins for a fixed range goes to infinity. This is equivalent to the bin size $b$ going to 0. We assume that all variables share the same number of bins and same possible values, due to the symmetry of the system.
+%
+%Recall that an entry in the plot matrix is nonempty if \cref{discrete heat} is satisfied at some point within or on the edges of the entry. We know an entry contains a solution if any two vertices of the subcube have different signs (including 0). To prevent overcounting, we can check a fewer number of vertices, as long as edge cases are considered. This is our plotting method, or method of determining whether there is a solution within a subcube.
+%
+%The coordinates at any vertex are $\pm \frac{b}{2}$ away from the center coordinates. So the maximum divergence from 0 at the center that still permits at least 1 vertex to have a different sign than the others (in this case 0) is $2b$. But equation \cref{discrete heat} is just the discrete second derivative. So that means:
+%
+%\begin{equation}
+%    \label{max_diverge}
+%    |u_{xx}| \le 2b
+%\end{equation}
+%
+%\noindent With $|u_{xx}| = 2b$ being the most an approximate solution can differ from a true solution. This goes to 0 as b goes to 0, and so the approximate solution must approach the true, linear, solution as $b$ approaches 0.
 
-An entry is nonempty if \cref{discrete heat} is fulfilled at some point within or on the edges of the entry. We know an entry contains a solution if any two vertices of the subcube have different signs (including 0). To prevent overcounting, we can check a fewer number of vertices, as long as edge cases are considered. This is our plotting method, or method of determining whether there is a solution within a subcube.
-
-The coordinates at any vertex are $\pm \frac{b}{2}$ away from the center coordinates. So the maximum divergence from 0 at the center that still permits at least 1 vertex to have a different sign than the others (in this case 0) is $2b$. But equation \cref{discrete heat} is just the discrete second derivative. So that means:
-
-\begin{equation}
-    \label{max_diverge}
-    |u_{xx}| \le 2b
-\end{equation}
-
-\noindent With $|u_{xx}| = 2b$ being the most an approximate solution can differ from a true solution. This goes to 0 as b goes to 0, and so the approximate solution must approach the true, linear, solution as $b$ approaches 0.
-
-Given \cref{max_diverge}, we calculate a functional bound of the modified $L_2$ norm of $f(x_i) = u'_i-u_i$, where $u'_i$ is the discrete numerical solution at the value $x_i$ and $u_i$ is the value of the true solution at $x_i$. The bound is:
-
+With a finite number of bins we can also bound the distance between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. In \cref{max_diverge}, we calculate a functional bound of the modified $L_2$ norm \todo{What is the modified L2 norm?} for the difference $v_i-u_i$:
 \begin{equation}
 \label{n norm}
 L = 2b \left \lceil \cfrac{n}{2} \right \rceil^{5/2}
 \end{equation}
+This distance clearly goes to 0 as $b$ goes to 0. 
 
-\noindent Which also goes to 0 as $b$ goes to 0. 
-
-We run the program%
-\footnote{The reader can find the program at \url{https://github.com/cynliu98/Pixel\_Array\_Python}, called \textit{general\_mat\_mult\_4.py}, in the archives folder.}
-for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. We checked the signs of the discrete steady state condition at four vertices per subcube. The program used a partition of $n=8$ parts and a temperature mesh of $b = .05$, giving 41 bins for each cell. The boundaries [1.9,0.55] gave a total of 11 steady states, some of which are shown in \cref{heats}. The largest modified $L_2$ norm among these solutions was . Thus, all modified norms are smaller than the bound determined by equation \cref{n norm}. The bound also holds for the steady states given by other pairs of boundaries. The runtime under these conditions was about 270 seconds in Python 3.
-
-Therefore, the bound is accurate, and the numerical steady states calculated by PASS will converge to the correct states as $b \rightarrow 0$.
+We run the PASS method%
+\footnote{The reader can find the code for this method at \url{https://github.com/cynliu98/Pixel\_Array\_Python}, called \textit{general\_mat\_mult\_4.py}, in the archives folder.}
+for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. The program uses a partition of $n=8$ parts \todo{What do you mean partition and parts? What are they for}and a temperature mesh of $b = .05$, giving 41 bins for each cell. The boundaries $[1.9,0.55]$ \todo{is this a range, or a single boundary value pair?} gave a total of 11 steady states, some of which are shown in \cref{heats}. The largest modified $L_2$ norm among these solutions was \todo{This sentence ended abruptly. Is the worst case shown in the diagram?}. Thus, all modified norms are smaller than the bound determined by equation \cref{n norm}. The bound also holds for the steady states given by other pairs of boundaries. The runtime under these conditions was about 270 seconds in Python 3.\todo{That sounds super slow. How many boundary value pairs did you do?}
 
 \begin{figure*}
 \begin{center}
@@ -431,7 +428,7 @@ width=2.5in
 \end{center}
 \end{figure*}
 
-\subsection{Fisher-KPP Equation}
+\subsection{Fisher-KPP Equation}\label{sec:Fisher}
 
 Now, we consider the classical Fisher-KPP equation \citep{Fisher}. In one dimension, the equation is:
 
@@ -508,7 +505,7 @@ Then, for $n = 16$, we tested $\mu = .2$, $\mu = .5$, $\mu = 2$, and $\mu = 5$ (
 
 To confirm that discretization is indeed the issue, if $b = .05$ instead of $b = .051$, then the two solutions $u_i \equiv 0$ and $u_i \equiv 1$ always appear, regardless of $\mu$. This is because the expression \eqref{discrete Fisher} evaluates to exactly 0. Therefore, the PASS method identifies all true steady states, while it is not guaranteed to accept rough approximations to those steady states.
 
-\subsection{Wilhelmsson-Jancel Equation}
+\subsection{Wilhelmsson-Jancel Equation}\label{sec:WJ}
 
 Finally, we apply PASS to the following equation:
 
