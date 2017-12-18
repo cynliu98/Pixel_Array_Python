@@ -159,11 +159,11 @@ Many physical systems are modeled using partial differential equations, which de
 \end{equation}
 where $D(x)$ is a general diffusion coefficient, $R(u)$ is the reaction, and $f(x,t)$ is a source or a sink.
 
-Due to the ubiquity of \cref{Reaction-Diffusion Equation}, a large body of research has been developed to understand its behavior and solutions. General solutions several specific cases of reaction terms, including zero. For instance, a general solution to the Fisher equation $u_t = u_{xx} + \mu u(1-u)$, where $\mu$ is a constant, was derived by \citep{AnalyticFisher}.
+Due to the ubiquity of \cref{Reaction-Diffusion Equation}, a large body of research has been developed to understand its behavior and solutions. General solutions to several specific cases of reaction terms, including zero. For instance, a general solution to the Fisher equation $u_t = u_{xx} + \mu u(1-u)$, where $\mu$ is a constant, was derived by \citep{AnalyticFisher}.
 
-However, a general solution to \cref{Reaction-Diffusion Equation}, or even just a general steady state analysis, has remained out of reach. Therefore, unsolved forms of the equation have been analyzed using numerical methods \citep{Numerical_RD_1, Numerical_RD_2, Numerical_RD_3}. These methods usually require initial and boundary conditions to be satisfied, and provide one numerical solution.
+However, a general solution to \cref{Reaction-Diffusion Equation}, or even just a general steady state analysis, has remained out of reach. Therefore, unsolved forms of the equation have been analyzed using numerical methods \citep{Numerical_RD_1, Numerical_RD_2, Numerical_RD_3}. These methods usually require the satisfaction of initial and boundary conditions, and provide one numerical solution.
 
-This is where the Pixel Array (PA) method \citep{Introduction_to_PA} becomes relevant. Unlike many other numerical methods, it provides all solutions to a system of equations within a bounding box and is often faster than quasi-Newton methods. Because partial differential equations can be converted to a system of equations using discrete approximation methods, the PA method can be applied to partial differential equations. However, as the PA method is quite new, we also undertake to test its accuracy in a few well-known cases.
+This is where the Pixel Array (PA) method \citep{Introduction_to_PA} becomes relevant. Unlike many other numerical methods, it provides all solutions to a system of equations within a bounding box and is often faster than quasi-Newton methods. Because partial differential equations can be converted to systems of equations using discrete approximation methods, the PA method can be applied in this setting. However, as the PA method is quite new, we also undertake to test its accuracy in a few well-known cases.
 
 To test and also use the PA method, we needed to adapt it so as to produce a matrix of full solution sets, rather than just boolean values indicating where solutions exist. We refer to this adapted method as the Pixel Array Solution-Set (PASS) method. The ``bounding box" in this case consists of a pair of ranges for boundary values, one on each side of the one-dimensional reaction-diffusion system; of course a higher-dimensional tensor of solution sets would be appropriate for a higher-dimensional system. Using the PASS method, we were able to quickly and efficiently search for steady states of reaction-diffusion equations, which do not appear to be well-understood.
 
@@ -182,54 +182,54 @@ The methods we use to numerically solve for steady states are described below. W
 Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
 \end{comment}
 
-To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to an equation with no derivatives. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
+To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to an equation with no derivatives. This is done using finite differences in space, which uses secant lines to approximate derivatives. For instance,
 
 \begin{equation}
     \label{FD second order}
     u_{xx} = \cfrac{1}{h^2} (u_{i+1} - 2u_i + u_{i-1})
 \end{equation}
 
-\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences gives linear equations, but depending on the reaction-diffusion equation, the discretized form of that equation might not be linear.} When applied to the reaction-diffusion equation \eqref{Reaction-Diffusion Equation}---given that we are interested in steady states---this becomes:
+\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$. When applied to the reaction-diffusion equation \eqref{Reaction-Diffusion Equation}---given that we are interested in steady states---this becomes:
 
 \begin{equation}
     \label{discrete RD}
     0 = \cfrac{D}{h^2} (u_{i+1} - 2u_i + u_{i-1}) + R(u_i) + \hat{f}(x_i)
 \end{equation}
-Note that $f(x,t)$ in \cref{Reaction-Diffusion Equation} was changed to $\hat{f}(x_i)$, where $\hat{f}$ is a time-independent version of $f(x,t)$. This is because steady states are by definition independent of time, and thus we only care about the time-independent parts of the source or sink. 
+Note that $f(x,t)$ in \cref{Reaction-Diffusion Equation} was changed to $\hat{f}(x_i)$, a time-independent version of $f(x,t)$. This is because steady states are by definition independent of time, and thus we only care about the time-independent parts of the source or sink. 
 
-Equations like \eqref{discrete RD} will be called \textit{discrete steady state conditions}. We will be solving systems of that equation for all i with the PASS method. If the discrete steady state condition is satisfied for all $u_i$, then the $u_i$ together in order form a numerical steady state.
+Equations like \eqref{discrete RD} will be called \textit{discrete steady state conditions}. As $i$ varies over the spacial partitions, we obtain a system of equations that we will solve with the PASS method. If the discrete steady state condition is satisfied for all $u_i$, then the vector of $u_i$'s is a numerical steady state.
 
 \subsection{PASS: Modifying the Pixel Array method to pass along solution sets}\label{sec:PASS}
 
-Each equation in the discretized system corresponds to an array in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation (or inequality). Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. To represent this, we present Figure \cref{sample_function}, which is a function graph, and figure (\cref{sample_pixel_array}) as its corresponding pixel array with vertical dimension y and horizontal dimension x. Observe that the pixel array is upside down, to match conventions described in \citep{Introduction_to_PA}.
+Each equation in the discretized system corresponds to a multi-dimensional array, or tensor, in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation (or inequality). Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. To represent this, we present Figure \cref{sample_function}, the graph of a function, and figure (\cref{sample_pixel_array}) as its corresponding pixel array with vertical dimension y and horizontal dimension x.
 
 \begin{figure}[h]
 \begin{subfigure}{.4\textwidth}
   \centering
   \captionsetup{width=0.8\textwidth}
-  \includegraphics[width=\linewidth]{"y equals x2".jpg}
+  \includegraphics[width=.9\linewidth]{"y equals x2".jpg}
   \caption{An example plot of a function, oriented so its axes match that of a matrix\\\vspace{.6in}}
   \label{sample_function}
 \end{subfigure}%
 \begin{subfigure}{.4\textwidth}
   \centering
   \captionsetup{width=0.84\textwidth}
-  \includegraphics[width=.84\linewidth]{"pixel array".png}
-  \caption{A low-resolution pixel array corresponding to the function plot. When the equation is satisfied at a vertex, we ``round up" in y. That means pixels adjacent to the vertex with y larger than y at the vertex are 1; the other adjacwnt vertices are 0.}
+  \includegraphics[width=.9\linewidth]{"pixel array".png}
+  \caption{A low-resolution pixel array corresponding to the function plot. When the equation is satisfied at a vertex, we ``round up" in y. That means pixels adjacent to the vertex with y larger than y at the vertex are 1; the other adjacent vertices are 0.}
   \label{sample_pixel_array}
 \end{subfigure}%
 \caption{An example plot with its corresponding pixel array}
 \label{plot_and_pa}
 \end{figure}
-% \todo{What does the second caption mean, ``round up in $y$''?}
+\todo{The second caption is very hard to interpret.}
 
-In Figure (\ref{plot_and_pa}), each of the cells in Figure (\ref{sample_function}) corresponds to a pixel in Figure (\ref{sample_pixel_array}). For instance, the function $y=x^2$ goes through the cell with $x \in [-2,-1]$, $y \in [2,3]$, and therefore its associated pixel, the third pixel in the second row, has the value 1.
+In Figure (\ref{plot_and_pa}), each of the cells in Figure (\ref{sample_function}) corresponds to a pixel in Figure (\ref{sample_pixel_array}). For instance, the function $y=x^2$ goes through the cell with $x \in [-2,-1)$, $y \in [2,3)$, and therefore its associated pixel, the third pixel in the second row, has the value 1.
 
-It is useful to set up a naming convention which relates the tensor entries and the cubes they correspond to. We thus refer to an entry by the value exactly at the center of its range; e.g. in the above example the pixel would be known as $(-1.5, 2.5)$. When we wish to refer to all of an entry's possible values as opposed to just the center value, we refer to it as a \textit{subcube}. We say that the \textit{bin-size}---meaning the width of each variable---for this pixel is $(1,1)$. For simplicity, we will assume that the bin sizes of all variables are equal, for every system we discuss.
+The entries in the tensor correspond to subcubes of the bounding box. Each tensor entry has a position in the tensor, but also corresponds to a subset of Euclidean space. We use the term \emph{pixel} as a common abstraction: it has a corresponding tensor position, tensor value, spatial subset, spatial center point, etc. Above, a the pixel with tensor position $(2,3)$ has tensor value 1, spatial subset $\{(x,y)\mid-2\leq x<-1, 2\leq y<3\}$, and spatial center point $(-1.5, 2.5)$. The pixel's size (spatial size) is $1$ in $x$ and $1$ in $y$. For simplicity, we will assume---for each system we discuss---that the pixel sizes will be the same for all variables.
 
-Suppose each equation in the system has been plotted as a tensor, as above. To solve the simultaneous system of equations, these tensors are multiplied together by contracting various edges. The resulting tensor will then indicate all combinations of the remaining variables for which there exists a solution to the system.
+Suppose each equation in the system has been plotted as a tensor, as above. To solve the simultaneous system of equations, these tensors are multiplied together by contracting edges corresponding to shared variables. The resulting tensor will then indicate all combinations of the remaining variables for which there exists a solution to the system.
 
-What differentiates the PASS method is that we are interested in finding numerical steady states, not just determining their existence. Thus, the boolean definition of a pixel array is too limited. This is resolved by introducing a new data type, the \textit{solutionSet}. Each entry of our modified pixel array is of this data type. A solutionSet is a finite set of tuples of any finite length. In our work, the lengths of each tuple in a given solutionSet turn out to be the same, e.g.\  $\{(0,1,2), (1,1,1), (2,1,0)\}$, because they will represent the set of solutions---in certain selected variables---to some system of equations.
+What differentiates the PASS method from the PA method is that we are interested in finding numerical steady states, not just determining their existence. Thus, the boolean definition of a pixel array is too limited. This is resolved by introducing a new data type, the \textit{solutionSet}. Each entry of our modified pixel array is of this data type. A solutionSet is a finite set of tuples of any finite length. In our work, the lengths of each tuple in a given solutionSet turn out to be the same, e.g.\  $\{(0,1,2), (1,1,1), (2,1,0)\}$, because they will represent the set of solutions---in certain selected variables---to a system of equations.
 
 To get some intuition for the solutionSet data type, consider the homogeneous heat equation:
 
@@ -245,18 +245,16 @@ To get some intuition for the solutionSet data type, consider the homogeneous he
     u_{xx} = 0,
 \end{equation}
 
-\noindent otherwise known as the one-dimensional Laplace equation. After being processed by finite differences and multiplying both sides by $h^2 \ne 0$ we get: 
-
+\noindent otherwise known as the one-dimensional Laplace equation. After being processed by finite differences and multiplying both sides by $h^2 \ne 0$ we get the following in the $i$th partition: 
 \begin{equation}
     \label{discrete heat}
     u_{i+1} - 2u_i + u_{i-1} = 0
 \end{equation}
-
-\noindent The corresponding tensor has three dimensions, corresponding to the variables $u_{i+1}$, $u_i$, and $u_{i-1}$ in \cref{discrete RD}. Each tensor entry corresponds to a subcube; let $(x,y,z)$ denote the center point of that subcube in space. The value in that entry will be the corresponding solution-set for the equation \cref{discrete heat}. That is, the value will be the empty set $\{\}$ if the subcube centered at $(x,y,z)$ does not contain a solution, and it will be the one-element set $\{(x,y,z)$\} if that subcube contains a solution.
+The corresponding tensor has three dimensions, corresponding to the variables $u_{i+1}$, $u_i$, and $u_{i-1}$ in \cref{discrete RD}. Each tensor entry corresponds to a subcube; let $(x,y,z)$ denote the center point of that subcube in space. The value in that entry will be the corresponding solution-set for the equation \cref{discrete heat}. That is, the value will be the empty set $\{\}$ if the subcube centered at $(x,y,z)$ does not contain a solution, and it will be the one-element set $\{(x,y,z)$\} if that subcube contains a solution.
 
 Tensor multiplication involves multiplication and addition. For boolean values, multiplication is as usual, e.g.\ $1*0=0$, and addition is almost as usual, the exception being that $1+1=1$; this is the usual \emph{Boolean semiring}, which is used in the PA method. For the PASS method, we need to define multiplication and addition of the solutionSet data type. This data type will store the solutions to the local discrete steady state condition.
 
-The multiplication of solutionSets is defined to be the Cartesian product of the tuples, and addition is defined to be set union. So if two theoretical solutionSets, \{(1),(2),(3)\} and \{(3,4)\} were multiplied, the resultant tuple would be \{(1,3),(2,3),(3,3),(1,4),(2,4),(3,4)\}. If they were added, we would get \{(1),(2),(3),(4)\}. This defines a commutative semiring, whose additive unit is the empty set $\{\}$ and whose multiplicative unit is $\{()\}$. Thus for example, when a solutionSet is multiplied by $\{\}$, the result is zero. When a solutionSet is added to $\{\}$ or multiplied by $\{()\}$, the solutionSet remains the same.
+The multiplication of solutionSets is defined to be the Cartesian product of the tuples, and addition is defined to be set union. So if two theoretical solutionSets, \{(1),(2),(3)\} and \{(3,3),(3,4)\} were multiplied, the resultant tuple would be \{(1,3,3),(2,3,3),(3,3,3),(1,3,4),(2,3,4),(3,3,4)\}. If they were added, we would get \{(1),(2),(3),(3,3),(3,4)\}. The above operations define a commutative semiring, whose additive unit is the empty solutionSet $0=\{\}$ and whose multiplicative unit is the singleton solutionSet consisting of an empty tuple, $1=\{()\}$. Thus for example, when any solutionSet is multiplied by zero, i.e.\ $\{\}$, the result is zero. When a solutionSet is added to zero or multiplied by one, i.e\ $\{()\}$, the solutionSet remains unchanged.
 
 With this definition of multiplication, the generalized matrix multiplication algorithm remains the same as it was in \citep{Introduction_to_PA}.
 
@@ -264,15 +262,15 @@ With this definition of multiplication, the generalized matrix multiplication al
 
 We will now demonstrate how the above definition of the solutionSet data type allows us to compute numerical steady states to the reaction diffusion equation. Specifically, we will show how the numerical steady states are stored within solutionSets, and expanded as more multiplications are performed. 
 
-We show this by example. Consider the heat equation \eqref{homogeneous heat} and its discrete version \eqref{discrete heat}. As discussed in \cref{sec:PASS}, all entries in the pixel array with dimensions $u_{i+1}$, $u_i$, and $u_{i-1}$ contain the single solution ${(u_i)}$ if $u_i$ satisfies \cref{discrete heat}. This is true for all partitions $i$.
+We show this by example. Consider the heat equation \eqref{homogeneous heat} and its discrete version \eqref{discrete heat}. As discussed in \cref{sec:PASS}, all entries in the pixel array with dimensions $u_{i+1}$, $u_i$, and $u_{i-1}$ consist of the singleton solution $\{(u_i)\}$ if $u_i$ satisfies \cref{discrete heat}. This is true for all partitions $i$.
 
-With all the matrices defined, we will multiply them using the general matrix multiplication algorithm described in \cref{sec:PASS}, but to do so we must determine which variables are exposed. We resolve this by introducing the \textit{Wiring Diagram} (WD) for this system; see \cref{WD_heat}. As described in \citep{Introduction_to_PA}, the WD lets us connect matrices by their variables and lets us decide which variables we want to be exposed when we have finished multiplying.
+With all the matrices defined, we will multiply them using the general matrix multiplication algorithm described in \cref{sec:PASS}, but to do so we must decide which variables are exposed. We formalize this using the notion of \textit{Wiring Diagram} (WD) for a system; see \cref{WD_heat}. As described in \citep{Introduction_to_PA}, the WD lets us connect matrices by their variables and lets us decide which variables we want to be exposed when we have finished multiplying.
 
 \begin{figure*}
 \caption{Wiring diagram for the discrete heat equation with n = 7 partitions. The boundary conditions in this instance are cells 1 and 5, but the product is evaluated as if 0 and 6 were boundaries to help prevent discontinuities at the true boundary.}
 \label{WD_heat}
 \begin{center}
-\begin{tikzpicture}[unoriented WD, surround sep= 3pt, every to/.style={draw, bend right=15pt}]
+\begin{tikzpicture}[unoriented WD, surround sep= 3.5pt, every to/.style={draw, bend right=15pt}]
 	\node[pack]                 (n0) {0};
 	\node[pack, right=1 of n0]  (n1) {1};
 	\node[pack, right=1 of n1]  (n2) {2};
@@ -309,6 +307,15 @@ With all the matrices defined, we will multiply them using the general matrix mu
 %
 	\draw (outer.west) to (l1);
 	\draw (l5) to (outer.east);
+	\draw[font=\tiny]
+		node at ($(l0)+(1,.3)$) {$u_0$}
+		node at ($(l1)+(1,-.3)$) {$u_1$}
+		node at ($(l2)+(1,.3)$) {$u_2$}
+		node at ($(l3)+(1,-.3)$) {$u_3$}
+		node at ($(l4)+(1,.3)$) {$u_4$}
+		node at ($(l5)+(.8,-.45)$) {$u_5$}
+		node at ($(l6)+(.8,.1)$) {$u_6$}
+	;
 \end{tikzpicture}
 \end{center}
 \end{figure*}
