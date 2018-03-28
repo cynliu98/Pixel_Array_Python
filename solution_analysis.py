@@ -124,10 +124,11 @@ def main():
     sols, bcs = readSolutions('sample_for_analysis.txt')
     for i in range(len(bcs)):
         for j in range(len(sols[i])):
-            val = L2(sols[i][j],bcs[i][0],bcs[i][1],9)
-            if val > worstL[2]:
+            val = L2(sols[i][j],bcs[i][0],bcs[i][1],8)
+            if val > worstL[2] and not(val in worstL):
                 worstL.append(val); worstsols.append(sols[i][j])
                 worstL.sort(reverse=True); worstsols.sort(reverse=True)
+                print (worstsols)
                 worstL = worstL[0:3]; worstsols = worstsols[0:3]
 
     print ("The worst 3 L2 norms were: " + str(worstL))

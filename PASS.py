@@ -121,7 +121,7 @@ class labeledTensor(object):
 # val = n_j, val1 = n_{j+1}, val2 = n_{j+2}
 def makeU(a,b,n,params):
     U = []
-    dim = [((n-1-i)*a+i*b)/(n-1) for i in range(n)]
+    dim = [round(((n-1-i)*a+i*b)/(n-1), 3) for i in range(n)]
     for val1 in dim:
         row = [] #new row for variable 
         for val in dim:
@@ -155,12 +155,28 @@ def makeAllU(numMats,a,b,n,params,varnames,dimU,paramlen=0,difparams=False,):
 
     return Us, dim1
 
-# rounding to resolution - from steady state program
-def roundtores(num, dim): #resolution n
-    c = dim[0]; m = dim[1] - dim[0] # b_i = m*i + c
-    i = (num - c)/m # solve for i
+# num: number to round
+# r: resolution
+# c: "offset" of the bin values (e.g. [.1, .6, 1.1] has offset of .1 from 0)
+def roundtores(num, r, c): #resolution n
+    i = (num - c)/r # solve for i
     roundi = round(i+.00001) # round i to the nearest integer, round up
-    return m*roundi+c
+    return r*roundi+c
+
+# arr: original bin bounds
+# r: resolution (difference between adjacent bins)
+# n: number of matrices in product
+# returns: new bin bounds, number of added values (even integer)
+def expand(arr, r, n):
+    # this code is almost identical to that in Fall's PASS
+    print ("Expand boiz")
+    adjust = (1/(n-2)) * (arr[1] - arr[0])
+    rawRange = [arr[0] - adjust, arr[1] + adjust]
+    rang = [roundtores(rawRange[0], r, arr[0]), roundtores(rawRange[1], r, arr[0])]
+
+    valsAdded = round((arr[0] - rang[0])/r) * 2
+
+    return rang, valsAdded
 
 # Thank you Stack Overflow
 def removeDupsOrder(vars):
@@ -193,8 +209,29 @@ def steadyStateTest(orderedvars,params,dim):
     else:
         for i in range(2):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
-
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
+
+    # Non-functional W-J code, although I think the math is right.
+    '''p = float(params[0]); delta = float(params[1])
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
+        return False
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
+        return False
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    v = source + diffusion
+    try:
+        grad = [factor*math.pow(ui,delta),
+            factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
+            factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
+    except:
+        return False
+    mag = 0 # magnitude
+    for i in grad:
+        mag += math.pow(i,2)
+    mag = math.pow(mag,.5)
+    maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
+    return (abs(v) < maxchange)'''
 
     # Functional W-J code
     assert(len(orderedvars) == 3)
@@ -206,7 +243,7 @@ def steadyStateTest(orderedvars,params,dim):
 
     source = math.pow(uleft,p)
     diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    return (abs(roundtores(source + diffusion, dim)) < .00001)
+    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -329,28 +366,6 @@ def reduceSolutions(USol, dim, numMats):
         # remove all not unique solutions
         for rep in notuniques:
             e.delete(rep)
-
-# restrict the bound of solutions, returning it to trueBounds
-def boundSolutions(USol, tb, b):
-    for e in USol.getTensor().flatten():
-        sol = e.getSol()
-
-        invalids = []
-        for s in sol: # for every solution for this boundary
-            for val in s: # for every value in the solution
-                if (val > tb[1] + b) or (val < tb[0] - b): # if the value is outside the true bounds
-                    invalids.append(solutionTuple(s)) # is invalid solution
-                    break
-
-        for inv in invalids:
-            e.delete(inv) # delete invalid solution
-
-def convertToThousanths(arr):
-    toRtn = []
-    for el in arr:
-        toRtn.append(round(el,3))
-
-    return toRtn
         
 # print the entire matrix
 # basically useless
@@ -369,55 +384,27 @@ def printall(USol, dim1, bins):
 def printSols(USol, dim1, bins):
     assert bins > 0
     count = 0; countsol = 0;
-    b = dim1[1] - dim1[0]
-    solsDict = {}
+
     for e in USol.getTensor().flatten():
         sols = e.getSol()
-        if (sols[0][0] is not None): # solutions exist
+        if sols[0][0] is not None: # solutions exist
             count += 1
             boundaries = []
-            for s in sols:
-                boundaries.append(convertToThousanths([s[0],s[-1]])) # the new boundary conditions
-
-            assert len(boundaries) == len(sols)
-            for i in range(len(boundaries)):
-                ind = ((boundaries[i][0]+.00001)//b)*bins + (boundaries[i][1]+.00001)//b
-                if ind in solsDict.keys():
-                    solsDict[ind].add(solutionTuple(convertToThousanths(sols[i])[1:-1]))
-                else:
-                    solsDict[ind] = solutionTuple(convertToThousanths(sols[i][1:-1]))
+            for s in sols: # Fix this, probably by fixing reduction/directly changing boundaries here
+                boundaries.append([s[0],s[-1]]) # boundary conditions: not actually on the boundary!
 
             '''for j in range(dimSol):
                 indices.append(i//int(math.pow(bins,j)) % bins)
                 vals.append('%.2f'%dim1[indices[-1]])''' # old boundary calculation
 
             countsol += str(e).count('(')
+            assert len(boundaries) == len(sols)
+            for i in range(len(boundaries)):
+                print ("Value for bc's " + str(boundaries[i]) + ": " + str(sols[i][1:-1]))
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
-    print ("The solutions are: ")
-    for key, value in sorted(solsDict.items()):
-        bounds = [dim1[int(key//bins+.00001)], dim1[int(key%bins+.00001)]]
-        print ("Value for bc's " + str(bounds) + ": " + str(value))
-
-# old printing method
-def oldPrintSols(USol, dim1, bins, dimSol):
-    assert bins > 0
-    count = 0; i = 0; countsol = 0;
-    for e in USol.getTensor().flatten():
-        if e.getSol()[0][0] is not None: # solutions exist
-            count += 1
-            indices = []; vals = []
-            for j in range(dimSol):
-                indices.append(i//int(math.pow(bins,j)) % bins)
-                vals.append('%.2f'%dim1[indices[-1]])
-
-            countsol += str(e).count('(')
-            print ("Value for bc's " + str(vals[::-1]) + ": " + str(e))
-        i += 1
-
-    print ("There were " + str(count) + " sets of boundary conditions with solutions")
-    print ("There were " + str(countsol) + " solutions")
+    return boundaries
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
@@ -447,7 +434,7 @@ def printBCs(USol, dim1, bins):
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
 
 # convert a USol to a 2D boolean numpy array
-def convertToPlotOld(USol, dim1, bins):
+def convertToPlot(USol, dim1, bins):
     rawArray = []; el = []
     i = 0
     for e in USol.getTensor().flatten():
@@ -469,19 +456,16 @@ def convertToPlotOld(USol, dim1, bins):
 
     return toRtn
 
+
 def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 9; dimU = 3
     params = [2,1]
-    b = (trueBounds[1]-trueBounds[0])/(trueBins-1) # bin size
-    trueBins = 41; trueBounds = [0,2]; trueDim = [((trueBins-1-i)*trueBounds[0]+i*trueBounds[1])/(trueBins-1) for i in range(trueBins)]
-    adjust = (1/(numMats-2)) * (trueBounds[1]-trueBounds[0]) # amount by which to adjust bounds
-    rawRang = [trueBounds[0]-adjust, trueBounds[1]+adjust] # raw range - have to adjust it by bins
-    rang = [roundtores(rawRang[0],[1,1+b]),roundtores(rawRang[1],[1,1+b])] # true range: has possible bin values as bound ends
-    bins = round(trueBins + (trueBounds[0]-rang[0])//b + (rang[1]-trueBounds[1])//b )# the number of bins to run on is the number of bins in the small range, plus twice the number
-    # of bins in the adjustment value
+    trueRang = [0,2]; trueBins = 41
+    rang, addedBins = expand(trueRang,(trueRang[1]-trueRang[0])/(trueBins-1),numMats)
+    bins = trueBins + addedBins
     simple = False
 
     alused = al[8:] + al[0:8]
@@ -494,6 +478,7 @@ def main():
         varnames += newvars
         i += 1
 
+    print (rang[0], rang[1], bins)
     Us, dim1 = makeAllU(numMats,rang[0],rang[1],bins,params,varnames,dimU)
     print (str(dim1))
 
@@ -532,14 +517,12 @@ def main():
         prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
     else: prod = matMult(Us[0],Us[1],['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
-    boundSolutions(prod, trueBounds, b)
 
     # printall(USol, dim1)
-    '''b = printSols(prod, dim1, bins) # return fulfilled boundaries
-    b = set(b) # remove redundant'''
-    printSols(prod, dim1, bins, 2)
+    b = printSols(prod, dim1, bins) # return fulfilled boundaries
+    # b = set(b)
     input("Please press enter to continue ")
-    pixelArray = convertToPlotOld(prod,dim1,bins) # make the corresponding boolean array
+    pixelArray = convertToPlot(prod,dim1,bins) # make the corresponding boolean array
 
     fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
     # print (dim1[-1])
