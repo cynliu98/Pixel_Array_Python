@@ -1,7 +1,4 @@
-# UROP Summer
-# 6/20/17
-# Generalized matrix multiplication
-# Inhomogeneous Testing
+# UROP 2017-2018
 
 import itertools
 import numpy as np
@@ -58,6 +55,8 @@ class solutionTuple(object):
 
     def delete(self, tup): # remove tup from self.sol
         self.sol.remove(tup.getSol()[0])
+        if len(self.sol) == 0:
+            self.sol = [[None]] # default empty
         
     def mult(self, tup2): # rightwards multiply - Cartesian multiplication
         if (not (self.sol[0][0] is None) and not (tup2.getSol()[0][0] is None)):
@@ -163,18 +162,18 @@ def roundtores(num, r, c): #resolution n
     roundi = round(i+.00001) # round i to the nearest integer, round up
     return r*roundi+c
 
-# arr: original bin bounds
+# bound: original bin bounds
 # r: resolution (difference between adjacent bins)
 # n: number of matrices in product
 # returns: new bin bounds, number of added values (even integer)
-def expand(arr, r, n):
+def expand(bound, r, n):
     # this code is almost identical to that in Fall's PASS
     print ("Expand boiz")
-    adjust = (1/(n-2)) * (arr[1] - arr[0])
-    rawRange = [arr[0] - adjust, arr[1] + adjust]
-    rang = [roundtores(rawRange[0], r, arr[0]), roundtores(rawRange[1], r, arr[0])]
+    adjust = (1/(n-2)) * (bound[1] - bound[0])
+    rawRange = [bound[0] - adjust, bound[1] + adjust]
+    rang = [roundtores(rawRange[0], r, bound[0]), roundtores(rawRange[1], r, bound[0])]
 
-    valsAdded = round((arr[0] - rang[0])/r) * 2
+    valsAdded = round((bound[0] - rang[0])/r) * 2
 
     return rang, valsAdded
 
@@ -366,6 +365,27 @@ def reduceSolutions(USol, dim, numMats):
         # remove all not unique solutions
         for rep in notuniques:
             e.delete(rep)
+
+# Remove all solutions containing values outside true range
+# Removal code should be similar to that of reduceSolutions
+# DO NOT remove things within .00001 (or other arbitrary arithmetic error bound) of actual bounds
+# tb: true bounds
+def boundSolutions(USol, tb):
+    for e in USol.getTensor().flatten():
+        sol = e.getSol()
+
+        invalids = []
+        for s in sol: # for every solution for this boundary
+            print ("Here's your solution in e.getSol(), inside boundSolutions")
+            print (s)
+            for val in s: # for every value in the solution
+                if not(val is None):
+                    if (val > tb[1] + 0.00001) or (val < tb[0] - 0.00001): # if the value is outside the true bounds
+                        invalids.append(solutionTuple(s)) # is invalid solution
+                        break
+
+        for inv in invalids:
+            e.delete(inv) # delete invalid solution
         
 # print the entire matrix
 # basically useless
@@ -464,7 +484,8 @@ def main():
     numMats = 9; dimU = 3
     params = [2,1]
     trueRang = [0,2]; trueBins = 41
-    rang, addedBins = expand(trueRang,(trueRang[1]-trueRang[0])/(trueBins-1),numMats)
+    reso = (trueRang[1] - trueRang[0])/(trueBins-1)
+    rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
     simple = False
 
@@ -517,6 +538,7 @@ def main():
         prod = matMult(prod,Us[-1],[varnames[0], varnames[-1]], simple) # the final multiplication
     else: prod = matMult(Us[0],Us[1],['i','k','l'], simple)
     reduceSolutions(prod, dim1, numMats)
+    boundSolutions(prod, trueRang)
 
     # printall(USol, dim1)
     b = printSols(prod, dim1, bins) # return fulfilled boundaries
