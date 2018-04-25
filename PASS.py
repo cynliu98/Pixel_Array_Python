@@ -330,7 +330,7 @@ def matMult(A, B, exposed, simple):
     Usol = np.array(Usol)
     return labeledTensor(Usol, exposed, exresos)
 
-# Determining whether two solutions are identical
+# Determining whether two solutions for the same set of boundaries are identical
 # Algorithm: difference between two solutions is less than
 # 1/2 * (number of variables) * (dif)^2 where dif is
 # the difference between two adjacent bins (possible solution values)
@@ -339,32 +339,38 @@ def reduceSolutions(USol, dim, numMats):
     maxdev = .5 * (numMats) * math.pow(dif,2)
     for e in USol.getTensor().flatten():
         sol = e.getSol()
+        # print ("This is what a solution looks like in reduceSolutions:")
+        # print (sol)
 
         uniques = []; i = 0; notuniques = []
         for s in sol:
             if (i == 0):
                 uniques.append(s)
             else:
-                isUnique = True
-                for k in range(len(uniques)):
-                    dev = 0
-                    for j in range(len(s)):
-                        dev += math.pow(s[j] - uniques[k][j], 2)
-
-                    dev *= .5
-                    if (dev <= maxdev): # not a unique solution
-                        isUnique = False
-                        notuniques.append(solutionTuple(s))
-                        break
-
-                if isUnique:
+                if isUnique(s,uniques,maxdev):
                     uniques.append(s)
+                else: notuniques.append(solutionTuple(s))
                              
             i += 1
 
         # remove all not unique solutions
         for rep in notuniques:
             e.delete(rep)
+
+# subroutine for reducing solutions
+# determines whether a solution is "unique": significantly
+# different from all the other solutions in uniques
+def isUnique(sol, uniques, maxdev):
+	for k in range(len(uniques)):
+		dev = 0; unique_sol = uniques[k]
+		for j in range(len(sol)):
+			dev += math.pow(sol[j] - unique_sol[j],2)
+
+		dev *= .5
+		if (dev <= maxdev): # if solution is too similar any: not unique
+			return False
+
+	return True
 
 # Remove all solutions containing values outside true range
 # Removal code should be similar to that of reduceSolutions
@@ -376,8 +382,6 @@ def boundSolutions(USol, tb):
 
         invalids = []
         for s in sol: # for every solution for this boundary
-            print ("Here's your solution in e.getSol(), inside boundSolutions")
-            print (s)
             for val in s: # for every value in the solution
                 if not(val is None):
                     if (val > tb[1] + 0.00001) or (val < tb[0] - 0.00001): # if the value is outside the true bounds
@@ -400,9 +404,9 @@ def printall(USol, dim1, bins):
         i += 1
 
 # print only all the solutions
-# Assumes 2 dimensional
-def printSols(USol, dim1, bins):
-    assert bins > 0
+# Assumes 1D solutions
+def printSols(USol):
+    # assert bins > 0
     count = 0; countsol = 0;
 
     for e in USol.getTensor().flatten():
@@ -424,13 +428,51 @@ def printSols(USol, dim1, bins):
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
-    return boundaries
+
+# a modified version of printSols, that only prints solutions if they are
+# considered unique without taking into account initial boundaries
+# we use the same uniqueness-detection subroutine as reduceSolutions
+# treat boundaries as keys in a dictionary
+def printUniqueSols(USol, dim, numMats):
+    # assert bins > 0
+    dif = dim[1] - dim[0]
+    maxdev = .5 * (numMats) * math.pow(dif,2)
+
+    count = 0; countsol = 0;
+    all_boundaries = dict()
+    for e in USol.getTensor().flatten():
+        sols = e.getSol()
+        if sols[0][0] is not None: # solutions exist
+            for s in sols: # Fix this, probably by fixing reduction/directly changing boundaries here
+            	b = (s[0],s[-1]) # get the tuple of boundary conditions
+            	if b in all_boundaries:
+            		uniques = all_boundaries[b]
+            		if (isUnique(s[1:-1],uniques,maxdev)):
+	                	all_boundaries[b].append(s[1:-1])
+	                	countsol += 1
+            	else:
+                	all_boundaries[b] = [s[1:-1]]
+                	count += 1
+                	countsol += 1
+
+            '''for j in range(dimSol):
+                indices.append(i//int(math.pow(bins,j)) % bins)
+                vals.append('%.2f'%dim1[indices[-1]])''' # old boundary calculation
+
+            # countsol += str(e).count('(')
+            # assert len(all_boundaries) == len(sols)
+    boundaries = all_boundaries.keys()
+    for b in boundaries:
+    	sols  = all_boundaries[b]
+    	print ("Value for bc's " + str(b) + ": " + str(sols))
+
+    print ("There were " + str(count) + " sets of boundary conditions with solutions")
+    print ("There were " + str(countsol) + " solutions")
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
-# Assumes 2 dimensional
-# UNDER CONSTRUCTION
-def printBCs(USol, dim1, bins):
+# Assumes 1D solutions
+def printBCs(USol, dim1):
     count = 0; fulfilled = []
     for e in USol.getTensor().flatten():
         sols = e.getSol()
@@ -475,7 +517,6 @@ def convertToPlot(USol, dim1, bins):
     toRtn = np.array(rawArray) # convert to numpy
 
     return toRtn
-
 
 def main():
     # Actual testing time
@@ -541,8 +582,7 @@ def main():
     boundSolutions(prod, trueRang)
 
     # printall(USol, dim1)
-    b = printSols(prod, dim1, bins) # return fulfilled boundaries
-    # b = set(b)
+    printUniqueSols(prod, dim1, numMats) # return fulfilled boundaries
     input("Please press enter to continue ")
     pixelArray = convertToPlot(prod,dim1,bins) # make the corresponding boolean array
 
@@ -551,7 +591,7 @@ def main():
     plot = ax.imshow(pixelArray, interpolation='none', extent=[dim1[0], dim1[-1], dim1[-1], dim1[0]])
     # plot = plt.imshow(pixelArray)  # draw plot
     plt.show(plot) # show plot
-    input("Please press enter to continue")
+    # input("Please press enter to continue")
 
 start_time = time.time()
 main()
