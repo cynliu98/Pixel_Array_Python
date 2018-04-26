@@ -496,24 +496,34 @@ def printBCs(USol, dim1):
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
 
 # convert a USol to a 2D boolean numpy array
-def convertToPlot(USol, dim1, bins):
+# explicitly takes into account the extra bins from range expansion,
+# and ignores anything extra, taking advantage of array structure
+def convertToPlot(USol, trueRang, trueBins, dim1, bins):
     rawArray = []; el = []
+    padBins = (bins-trueBins)/2; hPadCount = 0; vPadCount = 0
     i = 0
     for e in USol.getTensor().flatten():
         if (i-1)//bins != i//bins and i != 0: # start new row
-            rawArray.append(el)
-            el = []
+            if (vPadCount >= padBins) and (vPadCount < bins-padBins):
+                rawArray.append(el)
+                el = []
+            hPadCount = 0
+            vPadCount += 1
 
-        if e.getSol()[0][0] is not None: # solutions exist
-            el.append(1) # True
-        else: # solutions don't exist
-            el.append(0)
+        if (vPadCount >= padBins) and (vPadCount < bins-padBins): # if within trueRang for 1 variable
+            if (hPadCount >= padBins) and (hPadCount < bins-padBins): # if within trueRang for the other variable
+                if e.getSol()[0][0] is not None: # solutions exist
+                    el.append(1) # True
+                else: # solutions don't exist
+                    el.append(0)
 
-        i+=1
+        i += 1; hPadCount += 1
 
-    rawArray.append(el) # don't forget the last row
-    assert len(rawArray) == bins
-    assert (len(rawArray[0])) == bins
+    # rawArray.append(el) # don't forget the last row
+    print (len(rawArray))
+    print (len(rawArray[0]))
+    assert len(rawArray) == trueBins
+    assert (len(rawArray[0])) == trueBins
     toRtn = np.array(rawArray) # convert to numpy
 
     return toRtn
@@ -584,11 +594,12 @@ def main():
     # printall(USol, dim1)
     printUniqueSols(prod, dim1, numMats) # return fulfilled boundaries
     input("Please press enter to continue ")
-    pixelArray = convertToPlot(prod,dim1,bins) # make the corresponding boolean array
+    pixelArray = convertToPlot(prod,trueRang,trueBins,dim1,bins) # make the corresponding boolean array
 
     fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
     # print (dim1[-1])
-    plot = ax.imshow(pixelArray, interpolation='none', extent=[dim1[0], dim1[-1], dim1[-1], dim1[0]])
+    # plot = ax.imshow(pixelArray, interpolation='none', extent=[dim1[0], dim1[-1], dim1[-1], dim1[0]])
+    plot = ax.imshow(pixelArray, interpolation='none', extent=[trueRang[0], trueRang[-1], trueRang[-1], trueRang[0]])
     # plot = plt.imshow(pixelArray)  # draw plot
     plt.show(plot) # show plot
     # input("Please press enter to continue")
