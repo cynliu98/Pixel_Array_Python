@@ -162,6 +162,15 @@ def roundtores(num, r, c): #resolution n
     roundi = round(i+.00001) # round i to the nearest integer, round up
     return r*roundi+c
 
+# num: number to round
+# r: resolution
+# bounds: upper and lower bounds (inclusive).
+# returns an index i such that |num - r*i+c| is minimized, if num is within bounds
+def roundtoresIndex(num, r, bounds):
+    if ((num + .00001) >= bounds[0]) or ((num - .00001) <= bounds[1]):
+        return round((num - bounds[0])/r + .00001)
+    return -1
+
 # bound: original bin bounds
 # r: resolution (difference between adjacent bins)
 # n: number of matrices in product
@@ -193,10 +202,10 @@ def steadyStateTest(orderedvars,params,dim):
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    '''vs = []
+    vs = []
     #for i in range(8):
         # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
-    if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
+    '''if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
         for i in range(8):
             vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
     elif abs(uleft - max(dim)) <= .0001:
@@ -208,10 +217,10 @@ def steadyStateTest(orderedvars,params,dim):
     else:
         for i in range(2):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
-    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
 
     # Non-functional W-J code, although I think the math is right.
-    '''p = float(params[0]); delta = float(params[1])
+    p = float(params[0]); delta = float(params[1])
     if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
         return False
     if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
@@ -343,19 +352,18 @@ def reduceSolutions(USol, dim, numMats):
         # print (sol)
 
         uniques = []; i = 0; notuniques = []
-        for s in sol:
-            if (i == 0):
-                uniques.append(s)
-            else:
-                if isUnique(s,uniques,maxdev):
-                    uniques.append(s)
-                else: notuniques.append(solutionTuple(s))
-                             
-            i += 1
+        if sol[0][0] is not None:
+            for s in sol:
+                if (i == 0):
+                    uniques.append(s); i+=1
+                else:
+                    if isUnique(s,uniques,maxdev):
+                        uniques.append(s)
+                    else: notuniques.append(solutionTuple(s))
 
-        # remove all not unique solutions
-        for rep in notuniques:
-            e.delete(rep)
+            # remove all not unique solutions
+            for rep in notuniques:
+                e.delete(rep)
 
 # subroutine for reducing solutions
 # determines whether a solution is "unique": significantly
@@ -443,7 +451,7 @@ def printUniqueSols(USol, dim, numMats):
     for e in USol.getTensor().flatten():
         sols = e.getSol()
         if sols[0][0] is not None: # solutions exist
-            for s in sols: # Fix this, probably by fixing reduction/directly changing boundaries here
+            for s in sols:
             	b = (s[0],s[-1]) # get the tuple of boundary conditions
             	if b in all_boundaries:
             		uniques = all_boundaries[b]
@@ -468,6 +476,7 @@ def printUniqueSols(USol, dim, numMats):
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
+    return boundaries
 
 # print only the boundary conditions with solutions
 # do not care for the number of solutions
@@ -498,7 +507,7 @@ def printBCs(USol, dim1):
 # convert a USol to a 2D boolean numpy array
 # explicitly takes into account the extra bins from range expansion,
 # and ignores anything extra, taking advantage of array structure
-def convertToPlot(USol, trueRang, trueBins, dim1, bins):
+def convertToPlot(USol, trueRang, trueBins, bins):
     rawArray = []; el = []
     padBins = (bins-trueBins)/2; hPadCount = 0; vPadCount = 0
     i = 0
@@ -520,13 +529,26 @@ def convertToPlot(USol, trueRang, trueBins, dim1, bins):
         i += 1; hPadCount += 1
 
     # rawArray.append(el) # don't forget the last row
-    print (len(rawArray))
-    print (len(rawArray[0]))
     assert len(rawArray) == trueBins
     assert (len(rawArray[0])) == trueBins
     toRtn = np.array(rawArray) # convert to numpy
 
     return toRtn
+
+# converts a list of fulfilled _real_ boundaries to a pixel array
+# bs: list of boundary tuples
+# trueRang: the desired range of boundary values for which we want to see the presence of solutions
+# r: resolution
+# assume for now same range for both (all) boundary variables
+def newConvert(bs, trueRang, trueBins, r):
+    plot = np.zeros((trueBins,trueBins))
+    for b in bs:
+        # first element is row #, second is col #
+        xi = roundtoresIndex(b[0], r, trueRang)
+        yi = roundtoresIndex(b[1], r, trueRang)
+        plot[xi][yi] = 1
+
+    return plot
 
 def main():
     # Actual testing time
@@ -534,7 +556,7 @@ def main():
 
     numMats = 9; dimU = 3
     params = [2,1]
-    trueRang = [0,2]; trueBins = 41
+    trueRang = [0,1]; trueBins = 11
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
@@ -592,9 +614,11 @@ def main():
     boundSolutions(prod, trueRang)
 
     # printall(USol, dim1)
-    printUniqueSols(prod, dim1, numMats) # return fulfilled boundaries
+    boundaries = printUniqueSols(prod, dim1, numMats) # return fulfilled boundaries
+    print (boundaries)
     input("Please press enter to continue ")
-    pixelArray = convertToPlot(prod,trueRang,trueBins,dim1,bins) # make the corresponding boolean array
+    pixelArray = newConvert(boundaries, trueRang, trueBins, reso)
+    # pixelArray = convertToPlot(prod,trueRang,trueBins,bins) # make the corresponding boolean array
 
     fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
     # print (dim1[-1])
