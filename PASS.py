@@ -217,55 +217,37 @@ def steadyStateTest(orderedvars,params,dim):
     else:
         for i in range(2):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
-    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
-
-    # Non-functional W-J code, although I think the math is right.
-    p = float(params[0]); delta = float(params[1])
-    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
-        return False
-    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
-        return False
-    source = math.pow(uleft,p)
-    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    v = source + diffusion
-    try:
-        grad = [factor*math.pow(ui,delta),
-            factor*(delta*math.pow(ui,delta-1)*(uright-ui) - math.pow(n,delta) - math.pow(uleft,delta)),
-            factor*(delta*math.pow(uleft,delta-1)*(ui-uleft)) + p*math.pow(uleft,p-1)]
-    except:
-        return False
-    mag = 0 # magnitude
-    for i in grad:
-        mag += math.pow(i,2)
-    mag = math.pow(mag,.5)
-    maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
-    return (abs(v) < maxchange)'''
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
 
     # Fisher Equation
-    return fisher(orderedvars,dim)
+    # return fisher(ui,uleft,uright,dif,h,factor,dim)
 
     # Functional W-J code
-    '''assert(len(orderedvars) == 3)
-    p = float(params[0]); delta = float(params[1])
-    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
-        return False
-    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
-        return False
+    # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
 
-    source = math.pow(uleft,p)
-    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)'''
+    # Benjamin-Bona-Mahony
+    return bbm(ui,uleft,uright,dif,h,factor,dim)
 
-def fisher(orderedvars, dim):
-    ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
-    dif = (dim[1] - dim[0])/2 # L_inf norm
-    h = .05
-    factor = math.pow(h,-2)
-
+def fisher(ui,uleft,uright,dif,h,factor,dim):
     num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
     num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
     num1 *= factor
     return (abs(roundtores(num1, dim[1]-dim[0],dim[0]) + roundtores(num2, dim[1]-dim[0],dim[0]) - roundtores(0, dim[1]-dim[0],dim[0])) < .00001)
+
+def WJTest(ui,uleft,uright,dif,h,factor,params,dim):
+    p = float(params[0]); delta = float(params[1])
+    if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
+        return False
+    if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
+        return False
+
+    source = math.pow(uleft,p)
+    diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
+    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)
+
+def bbm(ui,uleft,uright,dif,h,factor,dim):
+    ux = (uright - ui)/h
+    return (abs(roundtores(ux*(1 + ui), dim[1]-dim[0],dim[0])) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -570,7 +552,7 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
-    numMats = 8; dimU = 3
+    numMats = 16; dimU = 3
     params = [1.5,.5]
     trueRang = [0,2]; trueBins = 41
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
