@@ -241,8 +241,11 @@ def steadyStateTest(orderedvars,params,dim):
     maxchange = mag * dif # the dot of the gradient with itself is mag^2, divided by mag and multiplied by dif
     return (abs(v) < maxchange)'''
 
+    # Fisher Equation
+    return fisher(orderedvars,dim)
+
     # Functional W-J code
-    assert(len(orderedvars) == 3)
+    '''assert(len(orderedvars) == 3)
     p = float(params[0]); delta = float(params[1])
     if ((p < 0) or (delta < 0)) and ((ui == 0) or (uleft == 0)): # check for negative powers of 0
         return False
@@ -251,7 +254,18 @@ def steadyStateTest(orderedvars,params,dim):
 
     source = math.pow(uleft,p)
     diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)
+    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)'''
+
+def fisher(orderedvars, dim):
+    ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
+    dif = (dim[1] - dim[0])/2 # L_inf norm
+    h = .05
+    factor = math.pow(h,-2)
+
+    num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
+    num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
+    num1 *= factor
+    return (abs(roundtores(num1, dim[1]-dim[0],dim[0]) + roundtores(num2, dim[1]-dim[0],dim[0]) - roundtores(0, dim[1]-dim[0],dim[0])) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -369,16 +383,16 @@ def reduceSolutions(USol, dim, numMats):
 # determines whether a solution is "unique": significantly
 # different from all the other solutions in uniques
 def isUnique(sol, uniques, maxdev):
-	for k in range(len(uniques)):
-		dev = 0; unique_sol = uniques[k]
-		for j in range(len(sol)):
-			dev += math.pow(sol[j] - unique_sol[j],2)
+    for k in range(len(uniques)):
+        dev = 0; unique_sol = uniques[k]
+        for j in range(len(sol)):
+            dev += math.pow(sol[j] - unique_sol[j],2)
 
-		dev *= .5
-		if (dev <= maxdev): # if solution is too similar any: not unique
-			return False
+        dev *= .5
+        if (dev <= maxdev): # if solution is too similar any: not unique
+            return False
 
-	return True
+    return True
 
 # Remove all solutions containing values outside true range
 # Removal code should be similar to that of reduceSolutions
@@ -452,16 +466,18 @@ def printUniqueSols(USol, dim, numMats):
         sols = e.getSol()
         if sols[0][0] is not None: # solutions exist
             for s in sols:
-            	b = (s[0],s[-1]) # get the tuple of boundary conditions
-            	if b in all_boundaries:
-            		uniques = all_boundaries[b]
-            		if (isUnique(s[1:-1],uniques,maxdev)):
-	                	all_boundaries[b].append(s[1:-1])
-	                	countsol += 1
-            	else:
-                	all_boundaries[b] = [s[1:-1]]
-                	count += 1
-                	countsol += 1
+                b = (s[0],s[-1]) # get the tuple of boundary conditions
+                # print ("Here is s in printUniqueSols!")
+                # print (s)
+                if b in all_boundaries:
+                    uniques = all_boundaries[b]
+                    if (isUnique(s[1:-1],uniques,maxdev)):
+                        all_boundaries[b].append(s[1:-1])
+                        countsol += 1
+                else:
+                    all_boundaries[b] = [s[1:-1]]
+                    count += 1
+                    countsol += 1
 
             '''for j in range(dimSol):
                 indices.append(i//int(math.pow(bins,j)) % bins)
@@ -471,8 +487,8 @@ def printUniqueSols(USol, dim, numMats):
             # assert len(all_boundaries) == len(sols)
     boundaries = all_boundaries.keys()
     for b in boundaries:
-    	sols  = all_boundaries[b]
-    	print ("Value for bc's " + str(b) + ": " + str(sols))
+        sols  = all_boundaries[b]
+        print ("Value for bc's " + str(b) + ": " + str(sols))
 
     print ("There were " + str(count) + " sets of boundary conditions with solutions")
     print ("There were " + str(countsol) + " solutions")
@@ -554,9 +570,9 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
-    numMats = 9; dimU = 3
-    params = [2,1]
-    trueRang = [0,1]; trueBins = 11
+    numMats = 8; dimU = 3
+    params = [1.5,.5]
+    trueRang = [0,2]; trueBins = 41
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
