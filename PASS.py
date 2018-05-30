@@ -202,10 +202,26 @@ def steadyStateTest(orderedvars,params,dim):
     # heat equation
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
+    # return heatVerticesOld(ui,uleft,uright,dif,dim)
+    return heatEps(ui,uleft,uright,h,factor,dif)
+
+    # Fisher Equation
+    # return fisher(ui,uleft,uright,dif,h,factor,dim)
+
+    # Functional W-J code
+    # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
+
+    # Benjamin-Bona-Mahony
+    # return bbm(ui,uleft,uright,dif,h,factor,dim)
+
+def heatEps(ui,uleft,uright,h,factor,dif):
+    val = (uright - 2*ui + uleft)*factor
+    eps = 2*dif*math.sqrt(3)*factor
+    return abs(val) < eps
+
+def heatVerticesOld(ui,uleft,uright,dif,dim):
     vs = []
-    #for i in range(8):
-        # vs.append(uleft+math.pow(-1,i)*dif + uright+math.pow(-1,i//2)*dif - 2*(ui+math.pow(-1,i//4)*dif))
-    '''if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
+    if abs(ui - max(dim)) <= .0001 and abs(uleft - max(dim)) <= .0001:
         for i in range(8):
             vs.append(uleft+math.pow(-1,i//4)*dif + uright + math.pow(-1, i) * dif - 2 * (ui+math.pow(-1, i//2)*dif))
     elif abs(uleft - max(dim)) <= .0001:
@@ -217,22 +233,16 @@ def steadyStateTest(orderedvars,params,dim):
     else:
         for i in range(2):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
-    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect'''
-
-    # Fisher Equation
-    # return fisher(ui,uleft,uright,dif,h,factor,dim)
-
-    # Functional W-J code
-    # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
-
-    # Benjamin-Bona-Mahony
-    return bbm(ui,uleft,uright,dif,h,factor,dim)
+    return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
 
 def fisher(ui,uleft,uright,dif,h,factor,dim):
+    binSize = dim[1]-dim[0]
+    minVal = dim[0]
+
     num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
     num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
     num1 *= factor
-    return (abs(roundtores(num1, dim[1]-dim[0],dim[0]) + roundtores(num2, dim[1]-dim[0],dim[0]) - roundtores(0, dim[1]-dim[0],dim[0])) < .00001)
+    return (abs(roundtores(num1,binSize,minVal) + roundtores(num2,binSize,minVal) - roundtores(0,binSize,minVal)) < .00001)
 
 def WJTest(ui,uleft,uright,dif,h,factor,params,dim):
     p = float(params[0]); delta = float(params[1])
@@ -241,9 +251,10 @@ def WJTest(ui,uleft,uright,dif,h,factor,params,dim):
     if (abs(p - round(p)) > .0001 and uleft < 0) or (abs(delta - round(delta)) > .0001 and (ui < 0 or uleft < 0)):
         return False
 
+    binSize = dim[1]-dim[0]
     source = math.pow(uleft,p)
     diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
-    return (abs(roundtores(source + diffusion, dim[1]-dim[0], dim[0])) < .00001)
+    return (abs(roundtores(source + diffusion, binSize, dim[0])) < .00001)
 
 def bbm(ui,uleft,uright,dif,h,factor,dim):
     ux = (uright - ui)/h
@@ -552,9 +563,9 @@ def main():
     # Actual testing time
     # params = [p, delta] fulfilling p = delta + 1
 
-    numMats = 16; dimU = 3
+    numMats = 8; dimU = 3
     params = [1.5,.5]
-    trueRang = [0,2]; trueBins = 41
+    trueRang = [0,1]; trueBins = 21
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
@@ -613,15 +624,18 @@ def main():
 
     # printall(USol, dim1)
     boundaries = printUniqueSols(prod, dim1, numMats) # return fulfilled boundaries
-    print (boundaries)
+    # print (boundaries)
     input("Please press enter to continue ")
     pixelArray = newConvert(boundaries, trueRang, trueBins, reso)
     # pixelArray = convertToPlot(prod,trueRang,trueBins,bins) # make the corresponding boolean array
+    maskedPA = np.ma.masked_where(pixelArray == 1, pixelArray)
 
     fig, ax = plt.subplots(figsize=(6, 6)) # scaling plot axes
+    cmap = plt.cm.gray
+    cmap.set_bad(color='yellow')
     # print (dim1[-1])
     # plot = ax.imshow(pixelArray, interpolation='none', extent=[dim1[0], dim1[-1], dim1[-1], dim1[0]])
-    plot = ax.imshow(pixelArray, interpolation='none', extent=[trueRang[0], trueRang[-1], trueRang[-1], trueRang[0]])
+    plot = ax.imshow(maskedPA, cmap=cmap, interpolation='none', extent=[trueRang[0], trueRang[-1], trueRang[-1], trueRang[0]])
     # plot = plt.imshow(pixelArray)  # draw plot
     plt.show(plot) # show plot
     # input("Please press enter to continue")
