@@ -129,7 +129,7 @@ pdfencoding=unicode]{hyperref}
 
 % \blindtext
 %title and author details
-\title{Using the Pixel Array Method to\\Numerically Analyze the Reaction-Diffusion Equation}
+\title{Evaluating the Pixel Array Method as Applied to Partial Differential Equations}
 \author[1]{Cynthia T. Liu}
 \author[2]{David I. Spivak}
 \affil[1]{\small Massachusetts Institute of Technology, Department of Electrical Engineering and Computer Science}
@@ -149,25 +149,17 @@ The Pixel Array (PA) Method, originally introduced by Spivak et. al., is a fast 
 
 \section{Introduction}
 
-Many physical systems are modeled using partial differential equations, which describe the relationship between changing variables in the system. The reaction diffusion equation is such an equation---or perhaps a family of such equations---used to model chemical reactions, population dynamics, plasma physics, and other physical phenomena. In one dimension, the general form of the reaction diffusion equation is:
+Many physical systems are modeled using partial differential equations (PDEs), which describe the relationship between changing variables in the system. Examples of PDEs include the reaction diffusion equation, which is used to model chemical reactions, population dynamics, and plasma physics among other physical phenomena; and the Benjamin–Bona–Mahony equation, which models long surface gravity waves \citep{BBM}.
 
-\begin{equation}
-    \label{Reaction-Diffusion Equation}
-    u_t = D(x)u_{xx} + R(u) + f(x,t)
-\end{equation}
-where $D(x)$ is a general diffusion coefficient, $R(u)$ is the reaction, and $f(x,t)$ is a source or a sink.
+Due to the ubiquity of PDEs, entire fields of research are dedicated to solving them, both analytically and numerically. In particular, numerically solving PDEs has widespread applications in computational fluid dynamics, aerodynamics, and other engineering subjects. 
 
-Due to the ubiquity of \cref{Reaction-Diffusion Equation}, a large body of research has been developed to understand its behavior and solutions. General solutions several specific cases of reaction terms, including zero. For instance, a general solution to the Fisher equation $u_t = u_{xx} + \mu u(1-u)$, where $\mu$ is a constant, was derived by \citep{AnalyticFisher}.
+Equations that have not been solved analytically are often analyzed using numerical methods. For instance, unsolved forms of the reaction diffusion equation $u_t = D(x)u_{xx} + R(u) + f(x,t)$ are examined using numerical methods in \citep{Numerical_RD_1, Numerical_RD_2, Numerical_RD_3}. These methods usually require initial and boundary conditions to be satisfied, and provide one numerical solution.
 
-However, a general solution to \cref{Reaction-Diffusion Equation}, or even just a general steady state analysis, has remained out of reach. Therefore, unsolved forms of the equation have been analyzed using numerical methods \citep{Numerical_RD_1, Numerical_RD_2, Numerical_RD_3}. These methods usually require initial and boundary conditions to be satisfied, and provide one numerical solution.
+This is where the Pixel Array (PA) method \citep{Introduction_to_PA} becomes relevant. Unlike other numerical methods, it provides all solutions to a system of equations within a bounding box and is often faster than quasi-Newton methods. Because partial differential equations can be converted to a system of equations using discrete approximation methods, the PA method can be applied to partial differential equations. However, the PA method is quite new, and thus the goal of this paper is to establish its accuracy at numerically solving PDEs.
 
-This is where the Pixel Array (PA) method \citep{Introduction_to_PA} becomes relevant. Unlike many other numerical methods, it provides all solutions to a system of equations within a bounding box and is often faster than quasi-Newton methods. Because partial differential equations can be converted to a system of equations using discrete approximation methods, the PA method can be applied to partial differential equations. However, as the PA method is quite new, we also undertake to test its accuracy in a few well-known cases.
+To test and also use the PA method, we needed to adapt it so as to produce a matrix of full solution sets, rather than just boolean values indicating where solutions exist. We refer to this adapted method as the Pixel Array Solution-Set (PASS) method. The ``bounding box" in this case consists of a pair of ranges for boundary values, one on each side of the one-dimensional PDE system; of course a higher-dimensional tensor of solution sets would be appropriate for a higher-dimensional system. Using the PASS method, we were able to accurately find steady states for a variety of well-established PDEs.
 
-To test and also use the PA method, we needed to adapt it so as to produce a matrix of full solution sets, rather than just boolean values indicating where solutions exist. We refer to this adapted method as the Pixel Array Solution-Set (PASS) method. The ``bounding box" in this case consists of a pair of ranges for boundary values, one on each side of the one-dimensional reaction-diffusion system; of course a higher-dimensional tensor of solution sets would be appropriate for a higher-dimensional system. Using the PASS method, we were able to quickly and efficiently search for steady states of reaction-diffusion equations, which do not appear to be well-understood.
-
-The plan of the paper is as follows. In \cref{sec:methods} we provide a brief review of the finite differences method, as well as describe our modification of the PA method. In \cref{sec:verification} we use a combination of these methods to discretize the heat equation, the local Fisher equation, and what we will call the \textit{Wilhelmsson-Jancel} equation, and calculate numerical solutions. The first two of these, already being solved, allowed us to verify the accuracy of the PASS method.
-
-Finally, we apply the method to variants of the Wilhelmsson-Jancel equation whose solutions and steady states appear to be unknown. The results of this work provides us insight into the behavior of the equation by suggesting a new hypothesis about equilibrium behavior, and by showing a pattern in the boundary values for which steady states might exist.
+The plan of the paper is as follows. In \cref{sec:methods} we provide a brief review of the finite differences method, as well as describe our modification of the PA method. In \cref{sec:testing} we use finite differences to discretize the heat equation, the local Fisher equation, the Benjamin-Bona-Mahony equation, and the Sine-Gordon equation. Then we use PASS to calculate numerical solutions. As all the equations were previously solved, we can use them to demonstrate the effectiveness of PASS.
 
 \section{Methods}\label{sec:methods}
 
@@ -180,20 +172,20 @@ The methods we use to numerically solve for steady states are described below. W
 Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
 \end{comment}
 
-To apply the PASS method, we need to convert the reaction-diffusion equation \eqref{Reaction-Diffusion Equation} with $u_t = 0$ to an equation with no derivatives. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
+To apply the PASS method, we need to convert the reaction-diffusion equation (NO RD EQUATION ANYMORE) with $u_t = 0$ to an equation with no derivatives. This is done using finite differences, which uses secant lines to approximate derivatives. For instance,
 
 \begin{equation}
     \label{FD second order}
     u_{xx} = \cfrac{1}{h^2} (u_{i+1} - 2u_i + u_{i-1})
 \end{equation}
 
-\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences gives linear equations, but depending on the reaction-diffusion equation, the discretized form of that equation might not be linear.} When applied to the reaction-diffusion equation \eqref{Reaction-Diffusion Equation}---given that we are interested in steady states---this becomes:
+\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to the discrete solution in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences gives linear equations, but depending on the reaction-diffusion equation, the discretized form of that equation might not be linear.} When applied to the reaction-diffusion equation (NO RD EQUATION ANYMORE)---given that we are interested in steady states---this becomes:
 
 \begin{equation}
     \label{discrete RD}
     0 = \cfrac{D}{h^2} (u_{i+1} - 2u_i + u_{i-1}) + R(u_i) + \hat{f}(x_i)
 \end{equation}
-Note that $f(x,t)$ in \cref{Reaction-Diffusion Equation} was changed to $\hat{f}(x_i)$, where $\hat{f}$ is a time-independent version of $f(x,t)$. This is because steady states are by definition independent of time, and thus we only care about the time-independent parts of the source or sink. 
+Note that $f(x,t)$ in (NO RD EQUATION ANYMORE) was changed to $\hat{f}(x_i)$, where $\hat{f}$ is a time-independent version of $f(x,t)$. This is because steady states are by definition independent of time, and thus we only care about the time-independent parts of the source or sink. 
 
 Equations like \eqref{discrete RD} will be called \textit{discrete steady state conditions}. We will be solving systems of that equation for all i with the PASS method. If the discrete steady state condition is satisfied for all $u_i$, then the $u_i$ together in order form a numerical steady state.
 
@@ -345,7 +337,7 @@ Now that we know how to multiply matrices and determine exposed variables and bo
 
 Thus, by multiplying all the matrices together, we calculate solutionSets of numerical steady states. Each element within a single solutionSet satisfies the discrete steady state condition locally. Furthermore, with the PASS method, we can calculate steady states for all possible pairs of left and right boundary values at once, in some sense parallelizing that computation.
 
-\section{Testing}\label{sec:verification}
+\section{Testing}\label{sec:testing}
 
 We analyze the effectiveness of PASS by using it to produce steady states for (number) different partial differential equations. In \cref{sec:homog_heat} the equation has a constant diffusion coefficient and no reaction term. In \cref{sec:Fisher} the equation has a constant diffusion coefficient and a nonconstant reaction term. In \cref{sec:WJ} the equation has a nontrivial reaction term and a nonconstant diffusion coefficient.
 
