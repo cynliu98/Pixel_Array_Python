@@ -203,7 +203,7 @@ def steadyStateTest(orderedvars,params,dim):
     # assume all difs for all variables are the same, by system symmetry/doesn't make sense otherwise
     ui = orderedvars[1]; uleft = orderedvars[0]; uright = orderedvars[2]
     # return heatVerticesOld(ui,uleft,uright,dif,dim)
-    return heatEps(ui,uleft,uright,h,factor,dif)
+    # return heatEps(ui,uleft,uright,h,factor,dif)
 
     # Fisher Equation
     # return fisher(ui,uleft,uright,dif,h,factor,dim)
@@ -212,7 +212,10 @@ def steadyStateTest(orderedvars,params,dim):
     # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
 
     # Benjamin-Bona-Mahony
-    # return bbm(ui,uleft,uright,dif,h,factor,dim)
+    # return bbm(ui,uleft,uright,h,factor,dim)
+
+    # Sine-Gordon equation
+    return sg(ui,uleft,uright,h,factor,dim)
 
 def heatEps(ui,uleft,uright,h,factor,dif):
     val = (uright - 2*ui + uleft)*factor
@@ -256,9 +259,14 @@ def WJTest(ui,uleft,uright,dif,h,factor,params,dim):
     diffusion = (math.pow(ui,delta)*(uright - ui) - math.pow(uleft,delta)*(ui - uleft)) * factor
     return (abs(roundtores(source + diffusion, binSize, dim[0])) < .00001)
 
-def bbm(ui,uleft,uright,dif,h,factor,dim):
+def bbm(ui,uleft,uright,h,factor,dim):
     ux = (uright - ui)/h
     return (abs(roundtores(ux*(1 + ui), dim[1]-dim[0],dim[0])) < .00001)
+
+def sg(ui,uleft,uright,h,factor,dim):
+    s = math.sin(ui) # assume ui in radians
+    uxx = (uright - 2*ui + uleft)*factor
+    return (abs(roundtores(s-uxx,dim[1]-dim[0],dim[0])) < .00001)
 
 # Generalized matrix multiplication
 # A times B (labelled tensors)
@@ -565,7 +573,7 @@ def main():
 
     numMats = 8; dimU = 3
     params = [1.5,.5]
-    trueRang = [0,1]; trueBins = 21
+    trueRang = [0,7]; trueBins = 35
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
