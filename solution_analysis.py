@@ -1,5 +1,5 @@
-# UROP Summer 2017
-# July 13
+# UROP Summer 2017 - Spring 2018
+# July 13, 17; June 4, 18
 # A file for miscellaneous forms of solution analysis
 
 import math
@@ -8,6 +8,7 @@ def readSolutions(fname):
     f = open(fname, 'r') # open the file of solutions
     sols = []; bcs = []
     for l in f:
+        # print (l)
         bcraw = l[(l.index('(')+1):(l.index(')'))]
         bcraw = bcraw.split(',')
         bc = []
@@ -121,7 +122,7 @@ def main():
 
     worstL = [-1,-1,-1] # the worst 3 L2 values
     worstsols = [[],[],[]] # the worst 3 solutions
-    sols, bcs = readSolutions('sample_for_analysis.txt')
+    sols, bcs = readSolutions('sample2_for_analysis.txt')
     for i in range(len(bcs)):
         for j in range(len(sols[i])):
             val = L2(sols[i][j],bcs[i][0],bcs[i][1],8)

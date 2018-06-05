@@ -206,7 +206,7 @@ def steadyStateTest(orderedvars,params,dim):
     # return heatEps(ui,uleft,uright,h,factor,dif)
 
     # Fisher Equation
-    # return fisher(ui,uleft,uright,dif,h,factor,dim)
+    return fisher(ui,uleft,uright,dif,h,factor,dim)
 
     # Functional W-J code
     # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
@@ -215,11 +215,11 @@ def steadyStateTest(orderedvars,params,dim):
     # return bbm(ui,uleft,uright,h,factor,dim)
 
     # Sine-Gordon equation
-    return sg(ui,uleft,uright,h,factor,dim)
+    # return sg(ui,uleft,uright,h,factor,dim)
 
 def heatEps(ui,uleft,uright,h,factor,dif):
     val = (uright - 2*ui + uleft)*factor
-    eps = 2*dif*math.sqrt(3)*factor
+    eps = dif*2*math.sqrt(3)*factor
     return abs(val) < eps
 
 def heatVerticesOld(ui,uleft,uright,dif,dim):
@@ -243,7 +243,7 @@ def fisher(ui,uleft,uright,dif,h,factor,dim):
     minVal = dim[0]
 
     num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
-    num2 = 5*ui * (1 - ui)  # u_i(1-u_i)
+    num2 = .5*ui * (1 - ui)  # u_i(1-u_i)
     num1 *= factor
     return (abs(roundtores(num1,binSize,minVal) + roundtores(num2,binSize,minVal) - roundtores(0,binSize,minVal)) < .00001)
 
@@ -384,8 +384,8 @@ def reduceSolutions(USol, dim, numMats):
 # determines whether a solution is "unique": significantly
 # different from all the other solutions in uniques
 def isUnique(sol, uniques, maxdev):
-    for k in range(len(uniques)):
-        dev = 0; unique_sol = uniques[k]
+    for unique_sol in uniques:
+        dev = 0
         for j in range(len(sol)):
             dev += math.pow(sol[j] - unique_sol[j],2)
 
@@ -573,7 +573,7 @@ def main():
 
     numMats = 8; dimU = 3
     params = [1.5,.5]
-    trueRang = [0,7]; trueBins = 35
+    trueRang = [0,2]; trueBins = 41
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins

@@ -345,13 +345,22 @@ Thus, by multiplying all the matrices together, we calculate solutionSets of num
 
 \section{Testing}\label{sec:testing}
 
-We analyze the effectiveness of PASS by using it to produce steady states for (number) different partial differential equations. In \cref{sec:homog_heat} we analyze the heat equation. In \cref{sec:Fisher} we test on the Fisher equation. Then, in \cref{sec:WJ}, we examine the Benjamin-Bona-Mohany equation..
+We analyze the effectiveness of PASS by using it to produce steady states for (number) different partial differential equations. In \cref{sec:homog_heat} we analyze the heat equation. In \cref{sec:Fisher} we test on the Fisher equation. Then, in \cref{sec:bbm}, we examine the Benjamin-Bona-Mohany equation. Finally, in \cref{sec:sg}, we look at the Sine-Gordon equation.
 
 \subsection{Homogeneous Heat Equation}\label{sec:homog_heat}
 
-We first consider the homogeneous heat equation as described by \cref{homogeneous heat}, whose discrete steady state condition is \cref{discrete heat}. It is well known that steady states to the homogeneous heat equation are linear between the two boundary conditions, and this fact can also be verified by directly solving the equation.
+We first consider the homogeneous heat equation as described by \cref{homogeneous heat}, whose discrete steady state condition is \cref{discrete heat}. It is well known that steady states to the homogeneous heat equation are linear between the two boundary conditions, and this fact can also be verified by directly solving the equation. 
 
-One can prove that, for any number of cells and any range, as the number of bins tends to infinity, the numerical solution given by the PASS method converges to the true solution. Indeed, this is a direct consequence of Theorem 3.4.1 in \citep{Introduction_to_PA}.
+Let us first check if PASS successfully found all boundary conditions for which there are steady states. For the heat equation, any pair of boundary conditions should have an associated steady state. For possible boundary values in the range $[0,2]$, our associated pixel array is:
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=4.5cm]{images/heatGood.png}
+\caption{The pixel array associated with the heat equation. Yellow indicates that at least one numerical steady state was found for the boundary conditions indicated by the axes.}
+\label{heatPixel}
+\end{figure}
+
+Which is our desired result. Now let us check whether the numerical steady states found by PASS are sufficiently similar to the true, perfectly linear, steady state. One can prove that, for any number of cells and any range, as the number of bins tends to infinity, the numerical solution given by the PASS method converges to the true solution. Indeed, this is a direct consequence of Theorem 3.4.1 in \citep{Introduction_to_PA}.
 %First, we will prove, for any number $n$ of cells, that the numerical solution given by the PASS method converges to the true solution as the number of bins for a fixed range goes to infinity. This is equivalent to the bin size $b$ going to 0. We assume that all variables share the same number of bins and same possible values, due to the symmetry of the system.
 %
 %Recall that an entry in the plot matrix is nonempty if \cref{discrete heat} is satisfied at some point within or on the edges of the entry. We know an entry contains a solution if any two vertices of the subcube have different signs (including 0). To prevent overcounting, we can check a fewer number of vertices, as long as edge cases are considered. This is our plotting method, or method of determining whether there is a solution within a subcube.
@@ -365,24 +374,30 @@ One can prove that, for any number of cells and any range, as the number of bins
 %
 %\noindent With $|u_{xx}| = 2b$ being the most an approximate solution can differ from a true solution. This goes to 0 as b goes to 0, and so the approximate solution must approach the true, linear, solution as $b$ approaches 0.
 
-With a finite number of bins we can also bound the distance between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins, we know that the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. So, given the discrete steady state condition in \cref{discrete heat}, the maximum divergence from 0 at the center that still permits some point in the subcube to have the value 0 is $2b$.
+With a finite number of bins, we can also theoretically bound the ``distance" between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins, we know that the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. 
 
-Given this information, we calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
+For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the ``radius," or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum divergence from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$.
+
+Given this information, we can calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
 
 \begin{equation}
 \label{n norm}
-L = 2b \left \lceil \cfrac{n}{2} \right \rceil^{5/2}
+L = \epsilon \left \lceil \cfrac{n}{2} \right \rceil^{5/2}
 \end{equation}
 
-$L$, which we call the \emph{modified $L_2$ norm} clearly goes to 0 as $b$ goes to 0. 
+Where $L$ is the \emph{modified $L_2$ norm}. $L$ clearly goes to 0 as $b$ goes to 0. 
 
 We run the PASS method%
 \footnote{The reader can find the code for this method at \url{https://github.com/cynliu98/Pixel\_Array\_Python}, called \textit{PASS.py}, in the archives folder.}
-for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. The program partitions the spatial dimension into $n=8$ parts (which we will call partitions) and a temperature mesh of $b = .05$, giving 41 bins for each cell. Using the single boundary value pair $[1.9,0.55]$, the PASS method generated a total of 11 steady state approximations. 3 of these approximations, including the worst case, are shown in \cref{heats}.
+for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. The program partitions the spatial dimension into $n=8$ parts (which we will call partitions) and a temperature mesh of $b = .05$, giving 21 bins for each cell. Using the single boundary value pair $[1.0,0.1]$, the PASS method generated a total of 10 steady state approximations. 3 of those numerical steady states generated by PASS are shown in \cref{heats}. As one can see, they are all approximately linear---a perfectly linear steady state is the true steady state of the the equation.
 
-The largest modified $L_2$ norm among these solutions was 1.50. When $b = .05$ and $n = 8$ are substituted in equation $\cref{n norm}$, we get $3.2$, which is greater than $1.50$. Thus, all steady states' modified norms are smaller than the bound determined by equation \cref{n norm}. This bound also holds for the steady states given by other pairs of boundaries. Furthermore, in figure \cref{heats}, we see that the numerical steady states are approximately linear, giving visual confirmation that our approximations are close to the steady states.. The runtime under these conditions was about 270 seconds in Python 3 for 441 boundary conditions. \todo{That sounds super slow. How many boundary value pairs did you do?}
+The largest modified $L_2$ norm among PASS's solutions was 1.46. When $b = .05$ and $n = 8$ are substituted in equation $\cref{n norm}$, we get $3.39$, which is greater than $1.46$. Thus, all steady states' norms are smaller than the bound determined by equation \cref{n norm}. This bound also holds for the steady states given by other pairs of boundaries. Furthermore, in figure \cref{heats}, we see that the numerical steady states are approximately linear, giving visual confirmation that our approximations are close to the steady states.. The runtime under these conditions was about 48 seconds in Python 3 for 441 boundary value pairs. 
 
-\todo[inline]{What is \cref{heats} trying to tell us? How does it fit into the narrative?}
+\begin{comment}
+\todo{That sounds super slow. How many boundary value pairs did you do?}
+\end{comment}
+
+\todo[inline]{What is \cref{heats} trying to tell us? How does it fit into the narrative? Cynthia: I think I addressed this somewhat by elaborating in the first paragraph on this page.}
 
 \begin{figure*}
 \begin{center}
@@ -395,38 +410,38 @@ xmin = 1, xmax = 8,
 width=2.5in
 ]
 \addplot[black, mark=o] coordinates {
-	(1, 1.9) 
-	(2, 1.75)
-	(3, 1.6)
-	(4, 1.45)
-	(5, 1.25)
-	(6, 1)
-	(7, .8)
-	(8, .55)
+	(1, 1.0) 
+	(2, 1.0)
+	(3, .95)
+	(4, .85)
+	(5, .7)
+	(6, .55)
+	(7, .35)
+	(8, .1)
 };
 \addplot[blue, mark=square] coordinates {
-    (1, 1.9)
-    (2, 1.65)
-    (3, 1.4)
-    (4, 1.2)
-    (5, 1)
-    (6, .85)
-    (7, .7)
-    (8, .55)
+    (1, 1.0)
+    (2, .85)
+    (3, .62)
+    (4, .45)
+    (5, .3)
+    (6, .2)
+    (7, .15)
+    (8, .1)
 };
 \addplot[red, mark=triangle] coordinates {
-    (1, 1.9)
-    (2, 1.7)
-    (3, 1.45)
-    (4, 1.2)
-    (5, 1)
-    (6, .85)
-    (7, .7)
-    (8, .55)
+    (1, 1.0)
+    (2, .95)
+    (3, .85)
+    (4, .7)
+    (5, .55)
+    (6, .45)
+    (7, .3)
+    (8, .1)
 };
 \end{axis}
 \end{tikzpicture}
-\caption{The numerical steady state approximations given for homogeneous heat equation with the boundaries [1.9,.55]}
+\caption{Some numerical steady state approximations given for homogeneous heat equation with the boundaries [1.0,.1]}
 \label{heats}
 \end{center}
 \end{figure*}
@@ -440,7 +455,7 @@ Now, we consider the classical Fisher-KPP equation \citep{Fisher}. In one dimens
     u_t = u_{xx} + \mu u (1-u)
 \end{equation}
 
-\noindent Where $\mu$ represents the intrinsic growth rate of a species \citep{Numerical_RD_1} when used in the field of population dynamics. Its corresponding steady state is:
+\noindent Where $\mu$ represents the intrinsic growth rate of a species \citep{Numerical_RD_1} when used in the field of population dynamics. Its corresponding discrete equation for finding steady states is:
 
 \begin{equation}
     \label{discrete Fisher}
@@ -449,7 +464,7 @@ Now, we consider the classical Fisher-KPP equation \citep{Fisher}. In one dimens
 
 \noindent The only bounded steady states of this equation are $u \equiv 1$ and $u \equiv 0$ \citep{Fisher}, for all values of $\mu > 0$ and spatial interval size $h > 0$.
 
-Our method of plotting the pixel arrays for this equation is different than plotting the array for the heat equation, because the Fisher equation is nonlinear. An outline of the method, which can also be used for all reaction diffusion equations, is:
+Our method of plotting the pixel arrays for this equation is slightly different than plotting the array for the heat equation, because the Fisher equation is nonlinear. An outline of the method, which can also be used for all reaction diffusion equations, is:
 
 \begin{enumerate}
     \item Let the discrete reaction diffusion expression be $f(u_{i+1}, u_i, u_{i-1})$, and calculate its value.
@@ -458,7 +473,7 @@ Our method of plotting the pixel arrays for this equation is different than plot
 
 This method obviously converges as the size of bins $b \rightarrow 0$, because $f(u_{i+1}, u_i, u_{i-1})$ and 0 must round to the same expanded bin and smaller $b$ restricts the range of values that could round to the same bin. This is true for any fixed spatial interval size $h$, including as $h \rightarrow 0$.
 
-We run the program with 40 bins, $b = .051$ in the range $[0,2]$ and 10 cells, rounding up. We first test 3 values of $h$, $h = 1$, $h = .25$, and $h = .1$, all with $\mu = 1$. Because there are far significantly fewer steady states (just $u \equiv 1$ and $u \equiv 0$), we check for two things when verifying the PASS method. The method must give $u \equiv 1$ and $u \equiv 0$ if those are possible solutions, and preferably approximate solutions that are similar to those if those exact values are not possible. Furthermore, the must not give too many false positives. We present Tables 1(a) and 1(b) as well as some data to show that the PASS method fulfills these requirements
+We run the program with 41 bins, $b = .05$ in the range $[0,2]$ and 10 cells, rounding up. We first test 3 values of $h$, $h = 1$, $h = .25$, and $h = .1$, all with $\mu = 1$. Because there are far significantly fewer steady states (just $u \equiv 1$ and $u \equiv 0$), we check for two things in evaluating the PASS method. Firstly, we see if PASS gives $u \equiv 1$ and $u \equiv 0$ for all possible parameters. Secondly, we check the number and value of false positives given by PASS. We present Tables 1(a) and 1(b) as results:
 
 \begin{comment}
 \footnote{Ok, does it?}.
@@ -502,71 +517,77 @@ $\mu$ & Number of Steady States \\
 \end{center}
 \end{table}
 
-The two steady states reported for $n \ge 6$ are $u_i \equiv .974$ and $u_i \equiv 0$ for all i. The program used .974 instead of 1 because 1 is not a possible bin, and $.974$ is the closest bin to 1. Both of these steady states were reported for $n = 4$, but it also included many more solutions because dividing the same space into coarser intervals (larger $h$, smaller $p$) allows for greater variation among steady states.
+The two steady states reported for all values of $n$ listed above were $u_i \equiv 0$ and $u_i \equiv 1$ as desired.
 
-Then, for $n = 16$, we tested $\mu = .2$, $\mu = .5$, $\mu = 2$, and $\mu = 5$ ($\mu = 1$ had already been tested in \cref{Fisher Statistics}(a)). The results are in \cref{Fisher Statistics}(b). All of the additional steady states for $\mu = .2$ and $\mu = .5$ were also constant steady states . For $\mu = .2$ they were $u_i \equiv .051$, .103, .872, .923, .974, 1.026, and 1.077. For $\mu = .5$ $u_i \equiv .051$ and $1.026$ were the extra steady states. $u_i \equiv 1$ and $u_i \equiv 0$ were reported for all $\mu$, which is exactly what we wanted.
+For $n = 16$, we then tested $\mu = .2$, $\mu = .5$, $\mu = 2$, and $\mu = 5$ ($\mu = 1$ had already been tested in \cref{Fisher Statistics}(a)). The results are in \cref{Fisher Statistics}(b). Once again, $u_i \equiv 0$ and $u_i \equiv 1$ were found for all parameters. All of the additional steady states found for $\mu = .2$ and $\mu = .5$ were also constant-valued. For $\mu = .2$ the addition constant stady states were $u_i \equiv .05$, .10, .9, .95, 1.05, and 1.1. For $\mu = .5$ we had $u_i \equiv .05$ and $1.05$. Observe that all of these values are clustered around 0 and 1.
 
-\subsection{Wilhelmsson-Jancel Equation}\label{sec:WJ}
+\subsection{Benjamin-Bona-Mahony}\label{sec:bbm}
 
-Finally, we apply PASS to the following equation:
-
-\begin{equation}
-    \label{WJ}
-    \cfrac{\partial{u}}{\partial{t}} = \cfrac{1}{x^\gamma} \cfrac{\partial}{\partial{x}} \left( x^\gamma au^\delta \cfrac{\partial{u}}{\partial{x}} \right) + cu^p
-\end{equation}
-
-Which was the subject of the paper ``Self-generation and nonlinear diffusion---an analytic approach" \citep{WJ}. As the equation is unnamed, we will refer to it as the ``Wilhelmsson-Jancel" equation, after the authors' names. By setting $D = au^\delta$ and performing two coordinate changes to eliminate constants, the authors simplify \cref{WJ} to:
+The Benjamin-Bona-Mahony equation \citep{BBM}, to reiterate, models long surface gravity waves---waves with large wavelength are caused by gravity. The equation is
 
 \begin{equation}
-  \label{Simplified WJ}
-  \cfrac{\partial{u}}{\partial{t}} = \cfrac{1}{1+\delta} \cfrac{1}{x^\gamma} \cfrac{\partial}{\partial{x}}\left(x^\gamma \cfrac{\partial{u^{\delta + 1}}}{\partial{x}} \right) + u^p
+\label{bbm}
+    u_t + u_x + uu_x - u_{xxt} = 0
 \end{equation}
 
-In \citep{WJ}, the authors derive an exact solution for $p = \delta + 1$, for 1 dimensional space or $\gamma = 0$. If one lets $t \rightarrow \infty$, one can see that the only bounded steady state is $u_i \equiv 0$ for all i.
-
-The discrete steady state condition of this equation with $\gamma = 0$ is, calculated with forward differences is:
+This equation was completely solved in 1979 by Olver \citep{olver_1979}. The discrete form for solving steady states is:
 
 \begin{equation}
-  \label{discrete WJ}
-  0 = \cfrac{1}{h^2} \left[ u_{j}^\delta (u_{j+1} - u_{j}) - u_{j-1}^\delta (u_{j} - u_{j-1}) \right] + u_{j-1}^p
+    \label{bbm_discrete}
+    \frac{u_{i+1} - u_i}{h}(1 + u_i) = 0
 \end{equation}
 
-With $h = .1$, we test three combinations of $(p, \delta)$ such that $p = \delta + 1$ and report the number of solutions in \cref{WJ Statistics}. All other settings remain the same.
+From the equation, we can see that all constant-valued solutions are steady states of the equation. For $n = 16$, $h = .05$, and $u_i \in [0,2]$ with a resolution of $.05$, the pixel array associated with this system is:
 
-\begin{table*}
-\begin{center}
-\label{WJ Statistics}
-\begin{tabular}{ | c | c | }
-\hline
-$(p, \delta)$ & Number of Steady States \\
-\hline
-(2,1) & 51 \\
-\hline
-(3,2) & 65 \\ 
-\hline
-(1.5, .5) & 40 \\
-\hline
-\end{tabular}
-\setcounter{table}{1}
-\caption{$(p, \delta)$ vs. Number of numerical steady states given $h = .1$}
-\end{center}
-\end{table*}
+\begin{figure}[h]
+\centering
+\includegraphics[width=6cm]{images/bbm.png}
+\caption{The pixel array associated with the Benjamin-Bona-Mahony equation. Yellow indicates at least one steady state was found for the boundary conditions, purple otherwise}
+\label{bbmPixel}
+\end{figure}
 
-If $u_i \equiv 0$ is theoretically the only steady state, it seems odd that there are so many reported steady states (Table 2). However, these extraneous steady states are a result of discretization, not the PASS method. Furthermore, it is easy to eliminate false positives by making two observations: that steady states must be differentiable, and that the value of the right hand expression in \cref{discrete WJ} must tend to 0 as $b \rightarrow 0$. 
+One can verify from the output of the program that the numerical steady state produced for each boundary condition is indeed constant-valued and equal to the value at the boundaries.
 
-Most of the reported steady states, in the limit case of $h \rightarrow 0$, become a delta distribution. This distribution is not differentiable, and therefore these reported steady states must be false positives. The remaining extraneous steady states are constant at $u_i \equiv k$ for small k. This was permitted because the diffusion term (term dependent on $h$) in equation \cref{discrete WJ} is 0 for all constant solutions\footnote{This makes intuitive sense because there no net diffusion in a constant concentration system}, leaving only the requirement that $\text{round}(u_{j-1}^p) - \text{round}(0) < \frac{b}{2}$\footnote{where rounding is to the nearest extended bin}. Clearly, as $b \rightarrow 0$, $u_{j-1}$ and therefore $k$ must go to 0.
+\subsection{Sine-Gordon}\label{sec:sg}
 
-Thus, it is easy to eliminate extraneous solutions, and verify that $u_i \equiv 0$ is the only steady state to the Wilhelmsson-Jancel equation with $\gamma = 0$ and $p = \delta + 1$.
+Finally, we look at the Sine-Gordon equation, which is:
 
-\section{Conclusion}
+\begin{equation}
+    \label{Sine}
+    u_{tt} - u_{xx} + \sin u = 0
+\end{equation}
 
-The PASS method may be used to analyze reaction diffusion equations, by discretizing those equations and using PASS to numerically solve the resulting system. A rough estimate of many steady states can be achieved with the provided program in Python. However, a Julia (or other computational language) implementation can run much more powerful estimations extremely quickly. The PASS method may be extended to find steady states of other one-dimensional partial differential equations and two- or three-dimensional systems. This is done by adjusting the steady state condition, and pixel array creation algorithms based on the discretization and wiring diagram of the new equation.
+Soliton solutions of this equation are $u = \pm 4 \tan^{-1} \exp(\pm \frac{x - Ut}{\sqrt{1 - U^2}})$ \citep{SG-behavior}. In the limit case of $t \rightarrow \pm \infty$, for $U \neq 0,1$, $u$ approaches the constant steady states $x = \pm 4 \pi/2 = \pm 2\pi$ or $x = 0$ (depending on the sign of $\frac{x-Ut}{\sqrt{1-U^2}}$). Both of these steady state solutions are numerical steady states of the discretized form of equation \ref{Sine}:
 
-The primary novel benefit of the PASS method is the parallelizing the computation of many steady states. By doing so, it can reveal patterns in the behavior of equilibria much more efficiently than other numerical methods. Furthermore, as demonstrated in section 4, results of PASS may be used to establish hypotheses about steady state behavior of a little-understood equation.
+\begin{equation}
+    \label{discrete SG}
+    \sin u_i - \frac{u_{i+1} - 2u_i + u_{i-1}}{h^2} = 0
+\end{equation}
 
-The PASS method has the same limitations as the original PA method, such as producing false positives, and the additional limitation of possible false negatives. Furthermore, discretization methods like finite difference eliminate derivatives from the equation entirely, and thus it is important to verify that the reported steady states are differentiable in the limit case of $n \rightarrow \infty$. However, any false positives due to this are caused by discretization, and not the PASS method. Similarly, false negatives, which are far rarer than false positives, are caused by discretization in the solution space, and not the PASS method.
+However, it is clear that discretization gives us false positive steady states. In fact, it gives us infinitely many false positives: $u_i \equiv k\pi$ for all integers $k$ $\forall i$. It is not obvious from observation whether there are even more numerical steady states. Thus, we run PASS on the discrete equation, and get, for $n = 8$, $b = .2$, $u_i \in [0,7]$:
 
-\section{Acknolwedgments}
+\begin{figure}[h]
+\centering
+\includegraphics[width=6cm]{images/SG.png}
+\caption{The pixel array associated with Sine-Gordon equation.}
+\label{sgPixel}
+\end{figure}
+
+From the pixel array, we see that there are numerical solutions indicated only for homogenous boundary values at 0 and $\approx \pi, 2\pi$. The output of the PASS program confirms that the steady states at those boundaries are constant.
+
+\section{Discussion and Conclusion}
+
+The PASS method successfully finds all steady states to various partial differential equations within a bounding box. If exact steady states cannot be found, approximate steady states that are similar to theoretical ones are found. Thus, PASS is effective at approximating numerical staedy states of partial differential equations.
+
+The primary novel benefit of the PASS method is the parallelizing the computation of many steady states, and the visualization of many steady states at once in the resultant pixel array. By doing so, it can facilitate the discovery and confirmation of patterns.
+
+The PASS method has the same limitations as the original PA method, such as producing false positives and visualization of complex systems, and some additional limitations associated with discretization. As noted in section \cref{sec:sg}, discretization methods like finite difference may produce equations with more numerical steady states than the original. This issue may be resolved with more advanced discretization techniques such as finite element. 
+
+Because PASS does a lot of array manipulation, it is very slow in its Python implementation. Furthermore, even small systems might cause Python to crash if there are many steady states (such as with the heat equation). This problem can likely be mitigated with a more computationally-oriented language, but the problem of array manipulations is still open.
+
+The PASS method may be extended to find steady states of complex PDEs and even two- or three-dimensional systems. This may done by adjusting the steady state condition, the dimensions of our pixel arrays, editing plotting code for those arrays. These are changed based on the discretization and wiring diagram of whatever new equation we are examining. However, because so many changes are required, using PASS might be impractical for people unfamiliar with code and unwieldy overall.
+
+\section{Acknowledgments}
 
 \begin{comment}
 
