@@ -376,7 +376,7 @@ Which is our desired result. Now let us check whether the numerical steady state
 
 With a finite number of bins, we can also theoretically bound the ``distance" between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins, we know that the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. 
 
-For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the ``radius," or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum divergence from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$.
+For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm \epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the ``radius," or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum divergence from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$.
 
 Given this information, we can calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
 
@@ -464,11 +464,11 @@ Now, we consider the classical Fisher-KPP equation \citep{Fisher}. In one dimens
 
 \noindent The only bounded steady states of this equation are $u \equiv 1$ and $u \equiv 0$ \citep{Fisher}, for all values of $\mu > 0$ and spatial interval size $h > 0$.
 
-Our method of plotting the pixel arrays for this equation is slightly different than plotting the array for the heat equation, because the Fisher equation is nonlinear. An outline of the method, which can also be used for all reaction diffusion equations, is:
+Our method of plotting the pixel arrays for this equation is slightly different than plotting the array for the heat equation. It is essentially a stricter form of the epsilon method. An outline of the method is:
 
 \begin{enumerate}
     \item Let the discrete reaction diffusion expression be $f(u_{i+1}, u_i, u_{i-1})$, and calculate its value.
-    \item  Round that expression to the nearest bin, and round 0 to the nearest bin\footnote{We can write possible bin values $b_j$ as $b_j = mj + c$ for $j \in \mathbb{Z}$, $j \in [0,r]$ where $r$ is the resolution. However, we can expand this definition and remove the last condition on $j$. We round off to the nearest of these expanded bin values}. If those rounded values are the same, then the corresponding entry in the Pixel Array is nonempty.
+    \item  Round that expression to the nearest bin, and round 0 to the nearest bin\footnote{We can write possible bin values $b_j$ as $b_j = mj + c$ for $j \in \mathbb{Z}$, $j \in [0,r]$ where $r$ is the resolution. However, we can expand this by making $j$ unbounded; $j \in \mathbb{Z}$ is the only requirement. An ``expanded bin value" is any value of $b_j = mj + c$}. If those rounded values are the same, then the corresponding entry in the Pixel Array is nonempty.
 \end{enumerate}
 
 This method obviously converges as the size of bins $b \rightarrow 0$, because $f(u_{i+1}, u_i, u_{i-1})$ and 0 must round to the same expanded bin and smaller $b$ restricts the range of values that could round to the same bin. This is true for any fixed spatial interval size $h$, including as $h \rightarrow 0$.
@@ -519,11 +519,11 @@ $\mu$ & Number of Steady States \\
 
 The two steady states reported for all values of $n$ listed above were $u_i \equiv 0$ and $u_i \equiv 1$ as desired.
 
-For $n = 16$, we then tested $\mu = .2$, $\mu = .5$, $\mu = 2$, and $\mu = 5$ ($\mu = 1$ had already been tested in \cref{Fisher Statistics}(a)). The results are in \cref{Fisher Statistics}(b). Once again, $u_i \equiv 0$ and $u_i \equiv 1$ were found for all parameters. All of the additional steady states found for $\mu = .2$ and $\mu = .5$ were also constant-valued. For $\mu = .2$ the addition constant stady states were $u_i \equiv .05$, .10, .9, .95, 1.05, and 1.1. For $\mu = .5$ we had $u_i \equiv .05$ and $1.05$. Observe that all of these values are clustered around 0 and 1.
+For $n = 16$, we then tested $\mu = .2$, $\mu = .5$, $\mu = 2$, and $\mu = 5$ ($\mu = 1$ was used in \cref{Fisher Statistics}(a)). The results are in \cref{Fisher Statistics}(b). Once again, $u_i \equiv 0$ and $u_i \equiv 1$ were found for all parameters. All of the additional steady states found for $\mu = .2$ and $\mu = .5$ were also constant-valued. For $\mu = .2$ the addition constant stady states were $u_i \equiv .05$, .10, .9, .95, 1.05, and 1.1. For $\mu = .5$ we had $u_i \equiv .05$ and $1.05$. Observe that all of these values are clustered around 0 and 1.
 
 \subsection{Benjamin-Bona-Mahony}\label{sec:bbm}
 
-The Benjamin-Bona-Mahony equation \citep{BBM}, to reiterate, models long surface gravity waves---waves with large wavelength are caused by gravity. The equation is
+The Benjamin-Bona-Mahony equation \citep{BBM} models long surface gravity waves---waves with large wavelength are caused by gravity. The equation is
 
 \begin{equation}
 \label{bbm}
@@ -537,7 +537,7 @@ This equation was completely solved in 1979 by Olver \citep{olver_1979}. The dis
     \frac{u_{i+1} - u_i}{h}(1 + u_i) = 0
 \end{equation}
 
-From the equation, we can see that all constant-valued solutions are steady states of the equation. For $n = 16$, $h = .05$, and $u_i \in [0,2]$ with a resolution of $.05$, the pixel array associated with this system is:
+From the equation, we can see that all constant-valued solutions are steady states of the equation. For $n = 16$, $h = .05$, and $u_i \in [0,2]$ with a resolution of $.05$, the pixel array associated with finding all numerical steady states to this system is:
 
 \begin{figure}[h]
 \centering
@@ -564,7 +564,7 @@ Soliton solutions of this equation are $u = \pm 4 \tan^{-1} \exp(\pm \frac{x - U
     \sin u_i - \frac{u_{i+1} - 2u_i + u_{i-1}}{h^2} = 0
 \end{equation}
 
-However, it is clear that discretization gives us false positive steady states. In fact, it gives us infinitely many false positives: $u_i \equiv k\pi$ for all integers $k$ $\forall i$. It is not obvious from observation whether there are even more numerical steady states. Thus, we run PASS on the discrete equation, and get, for $n = 8$, $b = .2$, $u_i \in [0,7]$:
+However, discretization gives us false positive steady states. In fact, it gives us infinitely many false positives: $u_i \equiv k\pi$ for all integers $k$ $\forall i$. It is not obvious from observation whether there are even more numerical steady states. Thus, we run PASS on the discrete equation, and get, for $n = 8$, $b = .2$, $u_i \in [0,7]$:
 
 \begin{figure}[h]
 \centering
@@ -583,7 +583,7 @@ The primary novel benefit of the PASS method is the parallelizing the computatio
 
 The PASS method has the same limitations as the original PA method, such as producing false positives and visualization of complex systems, and some additional limitations associated with discretization. As noted in section \cref{sec:sg}, discretization methods like finite difference may produce equations with more numerical steady states than the original. This issue may be resolved with more advanced discretization techniques such as finite element. 
 
-Because PASS does a lot of array manipulation, it is very slow in its Python implementation. Furthermore, even small systems might cause Python to crash if there are many steady states (such as with the heat equation). This problem can likely be mitigated with a more computationally-oriented language, but the problem of array manipulations is still open.
+Because PASS does a lot of array manipulation, it is very slow, despite the original PA method being very efficient. This is because the product of SolutionSets can result in an exponentially increasing number of steady states per pixel. Thus, even small systems analyzed with PASS might cause Python to crash if there are many steady states (such as with the heat equation). This problem can be partially mitigated with a more computationally-oriented language, but the complexity limits even the fastest languages.
 
 The PASS method may be extended to find steady states of complex PDEs and even two- or three-dimensional systems. This may done by adjusting the steady state condition, the dimensions of our pixel arrays, editing plotting code for those arrays. These are changed based on the discretization and wiring diagram of whatever new equation we are examining. However, because so many changes are required, using PASS might be impractical for people unfamiliar with code and unwieldy overall.
 

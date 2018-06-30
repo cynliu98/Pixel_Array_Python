@@ -165,10 +165,11 @@ def roundtores(num, r, c): #resolution n
 # num: number to round
 # r: resolution
 # bounds: upper and lower bounds (inclusive).
+# offset: c in the expression below
 # returns an index i such that |num - r*i+c| is minimized, if num is within bounds
-def roundtoresIndex(num, r, bounds):
-    if ((num + .00001) >= bounds[0]) or ((num - .00001) <= bounds[1]):
-        return round((num - bounds[0])/r + .00001)
+def roundtoresIndex(num, r, bounds, offset):
+    if ((num + .00001) >= bounds[0]) and ((num - .00001) <= bounds[1]):
+        return round((num - offset)/r + .00001)
     return -1
 
 # bound: original bin bounds
@@ -206,16 +207,16 @@ def steadyStateTest(orderedvars,params,dim):
     # return heatEps(ui,uleft,uright,h,factor,dif)
 
     # Fisher Equation
-    return fisher(ui,uleft,uright,dif,h,factor,dim)
+    # return fisher(ui,uleft,uright,dif,h,factor,dim,params)
 
     # Functional W-J code
     # return WJTest(ui,uleft,uright,dif,h,factor,params,dim)
 
     # Benjamin-Bona-Mahony
-    # return bbm(ui,uleft,uright,h,factor,dim)
+    # return bbmEps(ui,uright,h,dif)
 
     # Sine-Gordon equation
-    # return sg(ui,uleft,uright,h,factor,dim)
+    return sgEps(ui,uleft,uright,h,factor,dif)
 
 def heatEps(ui,uleft,uright,h,factor,dif):
     val = (uright - 2*ui + uleft)*factor
@@ -238,14 +239,24 @@ def heatVerticesOld(ui,uleft,uright,dif,dim):
             vs.append(uleft-dif + uright+math.pow(-1,i)*dif - 2*(ui-dif))
     return len(set(np.sign(vs))) > 1 # multiple signs? There was a 0 in the subcube. One sign? The plane doesn't intersect
 
-def fisher(ui,uleft,uright,dif,h,factor,dim):
+def fisher(ui,uleft,uright,dif,h,factor,dim,params):
+    mu = params[0]
     binSize = dim[1]-dim[0]
     minVal = dim[0]
 
     num1 = uleft + uright - 2*ui  # u_{i+1} + u_{i-1} - 2*u_i
-    num2 = .5*ui * (1 - ui)  # u_i(1-u_i)
+    num2 = mu*ui * (1 - ui)  # u_i(1-u_i)
     num1 *= factor
     return (abs(roundtores(num1,binSize,minVal) + roundtores(num2,binSize,minVal) - roundtores(0,binSize,minVal)) < .00001)
+
+def fisherEps(ui,uleft,uright,h,factor,dif,params):
+    mu = params[0]
+    if (-2 + h**2*(1 - 2*ui)) <= 0:
+        magGrad = math.sqrt(2 + (-2 + h**2*(1-2*ui-dif*2))**2)
+    else: magGrad = math.sqrt(2 + (-2 + h**2*(1-2*ui+dif*2))**2)
+    val = (uright - 2*ui + uleft)*factor + mu*ui*(1-ui)
+    epsilon = dif*math.sqrt(3)*factor*magGrad
+    return abs(val) < epsilon
 
 def WJTest(ui,uleft,uright,dif,h,factor,params,dim):
     p = float(params[0]); delta = float(params[1])
@@ -263,12 +274,32 @@ def bbm(ui,uleft,uright,h,factor,dim):
     ux = (uright - ui)/h
     return (abs(roundtores(ux*(1 + ui), dim[1]-dim[0],dim[0])) < .00001)
 
+def bbmEps(ui, uright, h, dif):
+    val = (uright - ui)/h * (1 + ui)
+    if (ui <= -.6):
+        magGrad = math.sqrt((1+ui-dif)**2 + (2*(ui-dif)+1)**2)/h
+    else:
+        magGrad = math.sqrt((1+ui+dif)**2 + (2*(ui+dif)-1)**2)/h
+    eps = abs(magGrad * dif * math.sqrt(3))
+    return abs(val) < eps
+
 def sg(ui,uleft,uright,h,factor,dim):
     s = math.sin(ui) # assume ui in radians
     uxx = (uright - 2*ui + uleft)*factor
     return (abs(roundtores(s-uxx,dim[1]-dim[0],dim[0])) < .00001)
 
-# Generalized matrix multiplication
+def sgEps(ui,uleft,uright,h,factor,dif):
+    val = math.sin(ui) - (uright - 2*ui + uleft)*factor
+    # we use roundtoresIndex to find k such that k*pi is the largest
+    # multiple of pi less than ui
+    k = roundtoresIndex(ui,math.pi,[float("-inf"), float("inf")],0)
+    if (k%2 == 0):
+        magGrad = factor*math.sqrt(2 + math.pow(((h**2)*math.cos(ui-dif) + 2),2))
+    else:
+        magGrad = factor*math.sqrt(2 + math.pow(((h**2)*math.cos(ui+dif) + 2), 2))
+    eps = magGrad * dif * math.sqrt(3)
+    return abs(val) < eps
+
 # A times B (labelled tensors)
 def matMult(A, B, exposed, simple):
     # Preparation
@@ -559,10 +590,11 @@ def convertToPlot(USol, trueRang, trueBins, bins):
 # assume for now same range for both (all) boundary variables
 def newConvert(bs, trueRang, trueBins, r):
     plot = np.zeros((trueBins,trueBins))
+    offset = 0
     for b in bs:
         # first element is row #, second is col #
-        xi = roundtoresIndex(b[0], r, trueRang)
-        yi = roundtoresIndex(b[1], r, trueRang)
+        xi = roundtoresIndex(b[0], r, trueRang, offset)
+        yi = roundtoresIndex(b[1], r, trueRang, offset)
         plot[xi][yi] = 1
 
     return plot
@@ -572,8 +604,8 @@ def main():
     # params = [p, delta] fulfilling p = delta + 1
 
     numMats = 8; dimU = 3
-    params = [1.5,.5]
-    trueRang = [0,2]; trueBins = 41
+    params = [1,.5]
+    trueRang = [0,1]; trueBins = 11
     reso = (trueRang[1] - trueRang[0])/(trueBins-1)
     rang, addedBins = expand(trueRang,reso,numMats) # bounds, resolution, ""
     bins = trueBins + addedBins
