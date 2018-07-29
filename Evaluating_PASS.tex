@@ -172,12 +172,7 @@ The plan of the paper is as follows. In \cref{sec:methods} we provide a brief re
 
 The methods we use to numerically solve for steady states are described below. We first briefly illustrate our discretization method, finite differences. Then we describe the difference between the Pixel Array method of \citep{Introduction_to_PA} and the Pixel Array Solution-Set (PASS) method developed here. Finally, we demonstrate how using PASS with discretized partial differential equations lets us generate steady states.
 
-% \todo[inline]{Introduce this section with a few lines.}
 \subsection{Finite Differences}
-
-\begin{comment}
-Introduce set theoretic variant of pixel array method. Uses (blank) as addition, (blank) as multiplication, gives full solutions instead of merely indicating the presence of a solution. Use the homogeneous heat equation as an example.
-\end{comment}
 
 To apply the PASS method to a PDE, we need to remove all derivatives from the equation. We choose to do this with finite differences, which uses secant lines to approximate derivatives. Using finite differences, the approximate second derivative with respect to $x$ is:
 
@@ -186,7 +181,7 @@ To apply the PASS method to a PDE, we need to remove all derivatives from the eq
     u_{xx} = \cfrac{1}{h^2} (u_{i+1} - 2u_i + u_{i-1})
 \end{equation}
 
-\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to numerical solution value in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences gives linear equations, but depending on the equation, its discretized form might not be linear.} As an example, we apply finite differences to the reaction-diffusion equation \eqref{RD}. Note that because we only care about steady states, any derivatives with respect to time $t$ are set to 0. We get:
+\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to numerical solution value in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences turns each derivative into a linear expression. However, if an equation contained nonlinear terms like $u_iu_i'$, its discrete form would remain nonlinear.} As an example, we apply finite differences to the reaction-diffusion equation \eqref{RD}. Note that because we only care about steady states, any derivatives with respect to time $t$ are set to 0. We get:
 
 \begin{equation}
     \label{discrete RD}
@@ -197,27 +192,26 @@ Equations like \eqref{discrete RD} will be called \textit{discrete steady state 
 
 \subsection{PASS: Modifying the Pixel Array method to pass along solution sets}\label{sec:PASS}
 
-Each equation in the discretized system corresponds to an array in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation or inequality. Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. To represent this, we present Figure \cref{sample_function}, which is a function graph, and figure (\cref{sample_pixel_array}) as its corresponding pixel array with vertical dimension y and horizontal dimension x. Observe that the pixel array is upside down, to match conventions described in \citep{Introduction_to_PA}.
+Each equation in the discretized system corresponds to an array in both the Pixel Array (PA) and PASS method. In \citep{Introduction_to_PA}, the PA method is executed with boolean k-dimensional matrices or tensors, each of which represents one equation or inequality. Each of the $k$ dimensions in a given tensor specifies one variable of the corresponding equation, and each row or column in that dimension represents an interval of values the variable can assume. For each possible combination of $k$ variable values, the corresponding entry in the matrix is ``True" (1) if the equation is satisfied somewhere in that range of values and ``False" (0) otherwise. To represent this, we present Figure \cref{sample_function}, which is a function graph, and figure (\cref{sample_pixel_array}) as its corresponding pixel array with vertical dimension y and horizontal dimension x. Observe that the plot and pixel array are turned to their sides, to match conventions described in \citep{Introduction_to_PA}.
 
 \begin{figure}[h]
 \begin{subfigure}{.4\textwidth}
   \centering
   \captionsetup{width=0.8\textwidth}
   \includegraphics[width=\linewidth]{"y equals x2".jpg}
-  \caption{An example plot of a function, oriented so its axes match that of a matrix\\\vspace{.6in}}
+  \caption{An example plot of a function, oriented so its axes match that of a matrix}
   \label{sample_function}
 \end{subfigure}%
 \begin{subfigure}{.4\textwidth}
   \centering
   \captionsetup{width=0.84\textwidth}
   \includegraphics[width=.84\linewidth]{"pixel array".png}
-  \caption{A low-resolution pixel array corresponding to the function plot. When the equation is satisfied at a vertex, we ``round up" in y. That means pixels adjacent to the vertex with y larger than y at the vertex are 1; the other adjacent vertices are 0.}
+  \caption{A low-resolution pixel array corresponding to the function plot.}
   \label{sample_pixel_array}
 \end{subfigure}%
 \caption{An example plot with its corresponding pixel array}
 \label{plot_and_pa}
 \end{figure}
-% \todo{What does the second caption mean, ``round up in $y$''?}
 
 In Figure (\ref{plot_and_pa}), each of the cells in Figure (\ref{sample_function}) corresponds to a pixel in Figure (\ref{sample_pixel_array}). For instance, the function $y=x^2$ goes through the cell with $x \in [1,2]$, $y \in [2,3]$, and therefore its associated pixel, the third column in the second row, has the value 1.
 
@@ -225,14 +219,14 @@ It is useful to set up a naming convention which relates the tensor entries and 
 
 Suppose each equation in the system has been plotted as a tensor, as above. To solve the simultaneous system of equations, these tensors are multiplied together by contracting various edges. The resulting tensor will then indicate all combinations of the remaining variables for which there exists a solution to the system.
 
-What differentiates the PASS method is that we are interested in finding numerical steady states, not just determining their existence for certain boundary conditions. Thus, the boolean definition of a pixel array is too limited. This is resolved by introducing a new data type, the \textit{solutionSet}. Each entry of our modified pixel array is of this data type. A solutionSet is a finite set of tuples of any finite length. In our work, the lengths of each tuple in a given solutionSet turn out to be the same, e.g.\  $\{(0,1,2), (1,1,1), (2,1,0)\}$, because they will represent the set of solutions---in certain selected variables---to some system of equations.
+What differentiates the PASS method from the PA method is that we are interested in finding numerical steady states, not just determining their existence for certain boundary conditions. Thus, the boolean definition of a pixel array is too limited. This is resolved by introducing a new data type, the \textit{solutionSet}. Each entry of our modified pixel array is of this data type. A solutionSet is a finite set of tuples of any finite length. In our work, the lengths of each tuple in a given solutionSet turn out to be the same, e.g.\  $\{(0,1,2), (1,1,1), (2,1,0)\}$, because they will represent the set of solutions---in certain selected variables---to some system of equations.
 
 To get some intuition for the solutionSet data type, consider the homogeneous heat equation:
 
-\begin{equation}
+\begin{equation*}
     \label{general homogeneous heat}
     u_t - D(x)u_{xx} = 0
-\end{equation}
+\end{equation*}
 
 \noindent With $u_t = 0$ and $D(x) \equiv 1$, the equation becomes
 
@@ -318,7 +312,7 @@ The last thing to explain about \cref{WD_heat} is the fact that we have both \em
 % I don't know how to label the links
 
 \begin{figure*}
-\caption{Wiring diagram for a single product with 3 exposed variables and 4 total variables}
+\caption{Wiring diagram for a single product with 4 variables, all exposed}
 \label{WD_oneproduct}
 \begin{center}
 \begin{tikzpicture}[unoriented WD, surround sep= 3pt]
@@ -339,19 +333,19 @@ The last thing to explain about \cref{WD_heat} is the fact that we have both \em
 \end{center}
 \end{figure*}
 
-Now that we know how to multiply matrices and determine exposed variables and boundary conditions, we use this knowledge to compute the value of a general solutionSet.  By the definition of solutionSet multiplication defined in Section 2.2, if the entry $\{(u_1)\}$ is multiplied by the entry $\{(u_2)\}$, the resulting solutionSet is $\{(u_1, u_2)\}$. Recall from \cref{sec:PASS} that the entry $\{(u_1)\}$ would only occur if \cref{discrete heat} were satisfied for that particular value. The same can be said for the entry $\{u_2\}$. Therefore, the product $\{(u_1, u_2)\}$ would only be produced if their values satisfied in \cref{discrete heat} for \textit{both} $i = 1$ and $i = 2$. This means that the final value within the solutionSet is a numerical steady states, because each local numerical solution fulfills the discrete steady state condition.
+Now that we have explained how to multiply matrices and determine exposed variables and boundary conditions, we proceed to compute the value of a general solutionSet.  By the definition of solutionSet multiplication defined in Section 2.2, if the entry $\{(u_1)\}$ is multiplied by the entry $\{(u_2)\}$, the resulting solutionSet is $\{(u_1, u_2)\}$. Recall from \cref{sec:PASS} that the entry $\{(u_1)\}$ would only occur if \cref{discrete heat} were satisfied for that particular value. The same can be said for the entry $\{u_2\}$. Therefore, the product $\{(u_1, u_2)\}$ would only be produced if their values satisfied in \cref{discrete heat} for \textit{both} $i = 1$ and $i = 2$. This means that the final value within the solutionSet is a tuple of numerical steady states, because each local numerical solution fulfills the discrete steady state condition.
 
 Thus, by multiplying all the matrices together, we calculate solutionSets of numerical steady states. Each element within a single solutionSet satisfies the discrete steady state condition locally. Furthermore, with the PASS method, we can calculate steady states for all possible pairs of left and right boundary values at once, in some sense parallelizing that computation.
 
 \section{Testing}\label{sec:testing}
 
-We analyze the effectiveness of PASS by using it to produce steady states for (number) different partial differential equations. In \cref{sec:homog_heat} we analyze the heat equation. In \cref{sec:Fisher} we test on the Fisher equation. Then, in \cref{sec:bbm}, we examine the Benjamin-Bona-Mohany equation. Finally, in \cref{sec:sg}, we look at the Sine-Gordon equation.
+We analyze the effectiveness of PASS by using it to produce steady states for 4 different partial differential equations. In \cref{sec:homog_heat} we analyze the heat equation. In \cref{sec:Fisher} we test on the Fisher equation. Then, in \cref{sec:bbm}, we examine the Benjamin-Bona-Mohany equation. Finally, in \cref{sec:sg}, we look at the Sine-Gordon equation.
 
 \subsection{Homogeneous Heat Equation}\label{sec:homog_heat}
 
 We first consider the homogeneous heat equation as described by \cref{homogeneous heat}, whose discrete steady state condition is \cref{discrete heat}. It is well known that steady states to the homogeneous heat equation are linear between the two boundary conditions, and this fact can also be verified by directly solving the equation. 
 
-Let us first check if PASS successfully found all boundary conditions for which there are steady states. For the heat equation, any pair of boundary conditions should have an associated steady state. For possible boundary values in the range $[0,2]$, our associated pixel array is:
+Let us first check if PASS successfully finds all boundary conditions for which there are steady states. For the heat equation, any pair of boundary conditions should have an associated steady state. For possible boundary values in the range $[0,2]$, our associated pixel array is:
 
 \begin{figure}[h]
 \centering
@@ -360,7 +354,7 @@ Let us first check if PASS successfully found all boundary conditions for which 
 \label{heatPixel}
 \end{figure}
 
-Which is our desired result. Now let us check whether the numerical steady states found by PASS are sufficiently similar to the true, perfectly linear, steady state. One can prove that, for any number of cells and any range, as the number of bins tends to infinity, the numerical solution given by the PASS method converges to the true solution. Indeed, this is a direct consequence of Theorem 3.4.1 in \citep{Introduction_to_PA}.
+This is our desired result. Now let us check whether the numerical steady states found by PASS are sufficiently similar to the true, perfectly linear, steady state. One can prove that, for any number of cells and any range, as the number of bins tends to infinity, the numerical solution given by the PASS method converges to the true solution. Indeed, this is a direct consequence of Theorem 3.4.1 in \citep{Introduction_to_PA}.
 %First, we will prove, for any number $n$ of cells, that the numerical solution given by the PASS method converges to the true solution as the number of bins for a fixed range goes to infinity. This is equivalent to the bin size $b$ going to 0. We assume that all variables share the same number of bins and same possible values, due to the symmetry of the system.
 %
 %Recall that an entry in the plot matrix is nonempty if \cref{discrete heat} is satisfied at some point within or on the edges of the entry. We know an entry contains a solution if any two vertices of the subcube have different signs (including 0). To prevent overcounting, we can check a fewer number of vertices, as long as edge cases are considered. This is our plotting method, or method of determining whether there is a solution within a subcube.
@@ -374,30 +368,23 @@ Which is our desired result. Now let us check whether the numerical steady state
 %
 %\noindent With $|u_{xx}| = 2b$ being the most an approximate solution can differ from a true solution. This goes to 0 as b goes to 0, and so the approximate solution must approach the true, linear, solution as $b$ approaches 0.
 
-With a finite number of bins, we can also theoretically bound the ``distance" between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins, we know that the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. 
+With a finite number of bins, we can also theoretically bound the 'distance' between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins and the $L^\infty$ norm, the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. 
 
-For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm \epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the ``radius," or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum divergence from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$.
+For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm \epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the 'radius,' or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum difference from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$. In general, plotting a pixel array by comparing an expression's value at the center of a subcube to an $\epsilon$ will be called the \emph{epsilon method}.
 
-Given this information, we can calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
+We can also calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
 
 \begin{equation}
 \label{n norm}
 L = \epsilon \left \lceil \cfrac{n}{2} \right \rceil^{5/2}
 \end{equation}
-
-Where $L$ is the \emph{modified $L_2$ norm}. $L$ clearly goes to 0 as $b$ goes to 0. 
+where $L$ is the \emph{modified $L_2$ norm}. $L$ clearly goes to 0 as $b$ goes to 0. 
 
 We run the PASS method%
 \footnote{The reader can find the code for this method at \url{https://github.com/cynliu98/Pixel\_Array\_Python}, called \textit{PASS.py}, in the archives folder.}
 for a few combinations of $(b,n)$ to verify the bound in \eqref{n norm}. The program partitions the spatial dimension into $n=8$ parts (which we will call partitions) and a temperature mesh of $b = .05$, giving 21 bins for each cell. Using the single boundary value pair $[1.0,0.1]$, the PASS method generated a total of 10 steady state approximations. 3 of those numerical steady states generated by PASS are shown in \cref{heats}. As one can see, they are all approximately linear---a perfectly linear steady state is the true steady state of the the equation.
 
-The largest modified $L_2$ norm among PASS's solutions was 1.46. When $b = .05$ and $n = 8$ are substituted in equation $\cref{n norm}$, we get $3.39$, which is greater than $1.46$. Thus, all steady states' norms are smaller than the bound determined by equation \cref{n norm}. This bound also holds for the steady states given by other pairs of boundaries. Furthermore, in figure \cref{heats}, we see that the numerical steady states are approximately linear, giving visual confirmation that our approximations are close to the steady states.. The runtime under these conditions was about 48 seconds in Python 3 for 441 boundary value pairs. 
-
-\begin{comment}
-\todo{That sounds super slow. How many boundary value pairs did you do?}
-\end{comment}
-
-\todo[inline]{What is \cref{heats} trying to tell us? How does it fit into the narrative? Cynthia: I think I addressed this somewhat by elaborating in the first paragraph on this page.}
+The largest modified $L_2$ norm among PASS's solutions was 1.46. When $b = .05$ and $n = 8$ are substituted in equation $\cref{n norm}$, we get $3.39$, which is greater than $1.46$. Thus, all steady states' norms are smaller than the bound determined by equation \cref{n norm}. This bound also holds for the steady states given by other pairs of boundaries. Furthermore, in figure \cref{heats}, we see that the numerical steady states are approximately linear, giving visual confirmation that our approximations are close to the steady states.. The runtime under these conditions was about 48 seconds in Python 3 for 441 boundary value pairs on a 2016 Macbook. 
 
 \begin{figure*}
 \begin{center}
@@ -464,20 +451,16 @@ Now, we consider the classical Fisher-KPP equation \citep{Fisher}. In one dimens
 
 \noindent The only bounded steady states of this equation are $u \equiv 1$ and $u \equiv 0$ \citep{Fisher}, for all values of $\mu > 0$ and spatial interval size $h > 0$.
 
-Our method of plotting the pixel arrays for this equation is slightly different than plotting the array for the heat equation. It is essentially a stricter form of the epsilon method. An outline of the method is:
+Our method of plotting the pixel arrays for this equation is slightly different than plotting the array for the heat equation. It is essentially a stricter form of the epsilon method as defined in the previous section. An outline of the method is:
 
 \begin{enumerate}
     \item Let the discrete reaction diffusion expression be $f(u_{i+1}, u_i, u_{i-1})$, and calculate its value.
-    \item  Round that expression to the nearest bin, and round 0 to the nearest bin\footnote{We can write possible bin values $b_j$ as $b_j = mj + c$ for $j \in \mathbb{Z}$, $j \in [0,r]$ where $r$ is the resolution. However, we can expand this by making $j$ unbounded; $j \in \mathbb{Z}$ is the only requirement. An ``expanded bin value" is any value of $b_j = mj + c$}. If those rounded values are the same, then the corresponding entry in the Pixel Array is nonempty.
+    \item  Round that expression to the nearest bin, and round 0 to the nearest \emph{expanded bin}, where possible bin values $b_j$ are written as $b_j = mj + c$ for $j \in \mathbb{Z}$, $j \in [0,r]$ where $r$ is the resolution, and expanded bin values are just values of $b_j$ with unbounded, integer $j$. If those rounded values are the same, then the corresponding entry in the Pixel Array is nonempty.
 \end{enumerate}
 
 This method obviously converges as the size of bins $b \rightarrow 0$, because $f(u_{i+1}, u_i, u_{i-1})$ and 0 must round to the same expanded bin and smaller $b$ restricts the range of values that could round to the same bin. This is true for any fixed spatial interval size $h$, including as $h \rightarrow 0$.
 
 We run the program with 41 bins, $b = .05$ in the range $[0,2]$ and 10 cells, rounding up. We first test 3 values of $h$, $h = 1$, $h = .25$, and $h = .1$, all with $\mu = 1$. Because there are far significantly fewer steady states (just $u \equiv 1$ and $u \equiv 0$), we check for two things in evaluating the PASS method. Firstly, we see if PASS gives $u \equiv 1$ and $u \equiv 0$ for all possible parameters. Secondly, we check the number and value of false positives given by PASS. We present Tables 1(a) and 1(b) as results:
-
-\begin{comment}
-\footnote{Ok, does it?}.
-\end{comment}
 
 \begin{table}
 \begin{center}
