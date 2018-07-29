@@ -560,15 +560,15 @@ From the pixel array, we see that there are numerical solutions indicated only f
 
 \section{Discussion and Conclusion}
 
-The PASS method successfully finds all steady states to various partial differential equations within a bounding box. If exact steady states cannot be found, approximate steady states that are similar to theoretical ones are found. Thus, PASS is effective at approximating numerical staedy states of partial differential equations.
+The PASS method successfully finds all steady states to various partial differential equations within a bounding box. If exact steady states cannot be found, approximate steady states that are similar to theoretical ones are found. Thus, PASS is effective at approximating numerical steady states of partial differential equations.
 
 The primary novel benefit of the PASS method is the parallelizing the computation of many steady states, and the visualization of many steady states at once in the resultant pixel array. By doing so, it can facilitate the discovery and confirmation of patterns.
 
 The PASS method has the same limitations as the original PA method, such as producing false positives and visualization of complex systems, and some additional limitations associated with discretization. As noted in section \cref{sec:sg}, discretization methods like finite difference may produce equations with more numerical steady states than the original. This issue may be resolved with more advanced discretization techniques such as finite element. 
 
-Because PASS does a lot of array manipulation, it is very slow, despite the original PA method being very efficient. This is because the product of SolutionSets can result in an exponentially increasing number of steady states per pixel. Thus, even small systems analyzed with PASS might cause Python to crash if there are many steady states (such as with the heat equation). This problem can be partially mitigated with a more computationally-oriented language, but the complexity limits even the fastest languages.
+Because PASS does a lot of array manipulation, it can be very slow, despite the original PA method being very efficient. This is because the product of solutionSets can result in an exponentially increasing number of steady states per pixel. Thus, even small systems analyzed with PASS might cause Python to crash if there are many steady states (such as with the heat equation). This problem can be mitigated by using PASS in conjunction with the PA method. In other words, because the PASS method is able to extract solution sets, it can be executed after running the more efficient boolean pixel array method to locate the areas of interest on which to run PASS.
 
-The PASS method may be extended to find steady states of complex PDEs and even two- or three-dimensional systems. This may done by adjusting the steady state condition, the dimensions of our pixel arrays, editing plotting code for those arrays. These are changed based on the discretization and wiring diagram of whatever new equation we are examining. However, because so many changes are required, using PASS might be impractical for people unfamiliar with code and unwieldy overall.
+The PASS method may be extended to find steady states of complex PDEs and even two- or three-dimensional systems. This may done by adjusting the steady state condition, the dimensions of our pixel arrays, editing plotting code for those arrays. These are changed based on the discretization and wiring diagram of whatever new equation we are examining. However, because many changes are required, using PASS might less practical for people compared to the usual PA method.
 
 \section{Acknowledgments}
 
