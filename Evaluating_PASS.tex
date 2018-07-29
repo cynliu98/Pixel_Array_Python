@@ -181,7 +181,7 @@ To apply the PASS method to a PDE, we need to remove all derivatives from the eq
     u_{xx} = \cfrac{1}{h^2} (u_{i+1} - 2u_i + u_{i-1})
 \end{equation}
 
-\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to numerical solution value in the spatial interval $i$.\footnote{Note that in this example, we have a linear equation. This is because finite differences turns each derivative into a linear expression. However, if an equation contained nonlinear terms like $u_iu_i'$, its discrete form would remain nonlinear.} As an example, we apply finite differences to the reaction-diffusion equation \eqref{RD}. Note that because we only care about steady states, any derivatives with respect to time $t$ are set to 0. We get:
+\noindent Where $h$ is the length of a discrete spatial interval in $x$, and $u_i$ corresponds to numerical solution value in the spatial interval $i$. As an example, we apply finite differences to the reaction-diffusion equation \eqref{RD}. Note that because we only care about steady states, any derivatives with respect to time $t$ are set to 0. We get:
 
 \begin{equation}
     \label{discrete RD}
@@ -370,7 +370,7 @@ This is our desired result. Now let us check whether the numerical steady states
 
 With a finite number of bins, we can also theoretically bound the 'distance' between the true solution and the results of the PASS method. Suppose there are $n$ cells, and for each cell $1\leq i\leq n$, let $u_i$ be the true solution to the heat equation at $x_i$ (these should be a linear function of $i$) and let $v_i$ denote the numerical solution. By the definition of bins and the $L^\infty$ norm, the coordinates at any vertex of a subcube are $\pm \frac{b}{2}$ away from the center coordinates. 
 
-For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm \epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the 'radius,' or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum difference from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$. In general, plotting a pixel array by comparing an expression's value at the center of a subcube to an $\epsilon$ will be called the \emph{epsilon method}.
+For a numerical solution to the heat equation to exist within the subcube, the value of equation \cref{discrete heat} must be within $\pm \epsilon$ of 0 for some $\epsilon > 0$. We calculate epsilon by finding the maximum magnitude of the gradient within the subcube, and then multiplying that by the ``radius,'' or largest distance to any boundary, of the subcube. This calculation gives $\epsilon = \frac{3b\sqrt{2}}{2}$. Thus the maximum difference from 0 at the center that still permits some point in the subcube to have the value 0 is $\frac{3b\sqrt{2}}{2}$. In general, plotting a pixel array by comparing an expression's value at the center of a subcube to an $\epsilon$ will be called the \emph{epsilon method}.
 
 We can also calculate a functional bound of how much our solution could differ from the true steady state. We define this as the square root of the sum of the squared differences $(v_i-u_i)^2$ for all i. After some calculation, we get:
 
